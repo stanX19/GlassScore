@@ -21,3 +21,6 @@ python-docx
 openpyxl
 python-pptx
 aiosqlite
+sse-starlette
+pandas
+joblib

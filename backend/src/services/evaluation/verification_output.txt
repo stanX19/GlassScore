@@ -1,0 +1,5 @@
+Testing with text: 'I have a stable work and income. I have a family of two and I have 2 houses. I needed the loan because I need to pay for my fourth child's new car'
+Result: Score=-20, Description='"Family of two" contradicts "fourth child's new car".'
+
+Testing with text: 'I am applying for a loan to renovate my kitchen. I have a stable job and savings. I also have passive income through stocks and shares'
+Result: Score=0, Description='stable job, savings, passive income through stocks and shares'
