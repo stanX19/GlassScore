@@ -1,0 +1,40 @@
+# PyCharm project files
+.idea/
+*.iml
+
+# Python virtual environment
+.venv/
+venv/
+env/
+
+# Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+node_modules/
+# Dependencies
+pip-wheel-metadata/
+.Python
+build/
+dist/
+*.egg-info/
+
+# FastAPI specific files (if applicable)
+# For example, if you have a specific database file or log file
+# db.sqlite3
+# logs/
+
+# Environment variables (sensitive information)
+.env
+*/.env
+.flaskenv
+
+# Other common ignores
+*.log
+*.sqlite
+*.db
+
+design.md
+.github
+backend/ai-in-medicine-475907-firebase-adminsdk-fbsvc-1369bffd1b.json
