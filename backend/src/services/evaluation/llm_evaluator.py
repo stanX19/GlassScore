@@ -1,4 +1,4 @@
-from src.models.evaluate import EvaluationRequest, EvaluationEvidence, UserProfile, LLMEvaluationParams
+from src.models.evaluate import EvaluationRequest, EvaluationEvidence, UserProfile
 import asyncio
 
 
@@ -7,98 +7,147 @@ from src.models.session import TextContent
 
 
 async def llm_evaluate_loan(
-	params: LLMEvaluationParams,
-	other_evidence_tasks: list[asyncio.Task[EvaluationEvidence]] = None
-) -> EvaluationEvidence:
+	content: TextContent,
+	other_evidence_tasks: list[asyncio.Task[EvaluationEvidence]] = None,
+	objective: str = None
+) -> list[EvaluationEvidence]:
 	other_evidence_tasks = other_evidence_tasks or []
-	# We can wait for other evidence if needed, but for now we might just want to proceed with the text analysis
-	# other_evidence: list[EvaluationEvidence] = await asyncio.gather(*other_evidence_tasks)
+	
+	# Wait for other evidence (e.g. ML score) to provide context
+	other_evidence_list: list[EvaluationEvidence] = []
+	if other_evidence_tasks:
+		try:
+			# We wait for the tasks, but we don't want to fail if they fail
+			results = await asyncio.gather(*other_evidence_tasks, return_exceptions=True)
+			for res in results:
+				if isinstance(res, EvaluationEvidence):
+					other_evidence_list.append(res)
+				elif isinstance(res, list): # Handle list of evidence
+					other_evidence_list.extend([item for item in res if isinstance(item, EvaluationEvidence)])
+		except Exception as e:
+			print(f"Error gathering other evidence: {e}")
+
+	base_instruction = "You are a credit score evaluator for a bank. Your task is to analyze the following text from a loan applicant and evaluate their behavior."
+	if objective:
+		base_instruction = f"You are a risk analyst. Your task is to analyze the following text with this objective: {objective}"
+
+	# Add context from other evidence (e.g. ML model)
+	context_info = ""
+	if other_evidence_list:
+		context_info += "\n\nAdditional Context from other Evidence:\n"
+		for ev in other_evidence_list:
+			context_info += f"- Score: {ev.score}\n- Insight: {ev.description}\n"
 
 	prompt = f"""
-	You are a credit score evaluator for a bank. Your task is to analyze the following text from a loan applicant and evaluate their behavior.
+	{base_instruction}
+	{context_info}
 	
 	Text to evaluate:
-	"{params.text_content.text}"
+	"{content.text}"
 	
 	Analyze the text for behavioral signals and assign a score based on the following criteria:
+	- GOOD: 5 (Verified with evidence, logical behavior)
 	- NORMAL: 0 (Neutral, standard behavior)
 	- MINOR ISSUE: -10 (Slight concerns, illogical description, suspicious writings)
 	- WARNING: -20 (Red flags, gambling, instability, high risk, major inconsistencies)
 	
-	Return a JSON object with the following fields:
-	- "score": The integer score assigned (10, 0, -10, or -20).
-	- "description": A citation of specific parts of the text that leads to the conclusion. Not more than 15 words
+	Return a JSON object with the following field:
+	- "evidence": A list of evidence items. Each item should have:
+		- "score": The integer score assigned (5, 0, -10, or -20).
+		- "citation": The exact excerpt from the text that supports this evaluation (quote it directly, not more than 10 words).
+		- "description": A brief explanation of why this citation is concerning or noteworthy. Not more than 15 words.
+	
+	If there is no evidence of concerning or noteworthy behavior, return an empty list for "evidence".
 	"""
 
 	try:
 		response = await rotating_llm.send_message_get_json(
 			messages=prompt,
-			temperature=0.1 # Low temperature for consistent scoring
+			temperature=0.3 # Low temperature for consistent scoring
 		)
-		
 		if response["status"] == "ok" and "json" in response:
 			data = response["json"]
-			return EvaluationEvidence(
-				score=data.get("score", 0),
-				description=data.get("description", "No description provided."),
-				source=params.text_content.source
-			)
+			evidence_list = data.get("evidence", [])
+			
+			# Convert each evidence item to EvaluationEvidence object
+			result = []
+			for item in evidence_list:
+				result.append(EvaluationEvidence(
+					score=item.get("score", 0),
+					description=item.get("description", "No description provided."),
+					citation=item.get("citation", ""),
+					source=content.source
+				))
+			return result
 		else:
-			return EvaluationEvidence(
+			return [EvaluationEvidence(
 				score=0,
 				description=f"Failed to evaluate text: {response.get('text', 'Unknown error')}",
-				source=params.text_content.source
-			)
+				citation="",
+				source=content.source
+			)]
 	except Exception as e:
-		return EvaluationEvidence(
+		return [EvaluationEvidence(
 			score=0,
 			description=f"Error during LLM evaluation: {str(e)}",
-			source=params.text_content.source
-		)
+			citation="",
+			source=content.source
+		)]
 
 if __name__ == '__main__':
 	async def main():
-		# Test case 1: Gambling behavior (Should be WARNING -20)
-		gambling_text = "I have a stable work and income. I have a family of two and I have 2 houses. I needed the loan because I need to pay for my fourth child's new car"
-		params_gambling = LLMEvaluationParams(
-			text_content=TextContent(
-				text=gambling_text,
-				key="gambling_note.txt",
-				source="user_upload"
-			)
-		)
+		# Test prompts list
+		prompts: list[str] = [
+			# "I am applying for a loan to renovate my kitchen. I have a stable job and savings.",
+			# "I need this loan for my gambling debts and to pay off some urgent bills.",
+			"""Tavily Search Results: {
+  "content": "My name is Joemer Ramos! Im a software engineer by day and an aspiring tech influencer by night<br><br> I have two goals that Im trying to achieve<br><br> The first goal is to pique your interest enough to check out my profile<br><br> So yay, one down and welcome! The second is a little more challenging<br><br> I want to help people grow<br><br> Ive always loved self-improvement and feel like my perspective can inspire people to have a better life<br><br> I want to do my best to be an [...] # Joemer R.\nSoftware Engineer at Google\nNew York, New York, United States, US  \n500 connections, 1682 followers [...] ## Experience\n### Software Engineer  \nGoogle  \nSep 2021 - Present   \nNew York City Metropolitan Area  \nChrome for iOS\n\n### Content Creator  \nYouTube  \nJan 2023 - Present   \nNew York City Metropolitan Area  \nCreating YouTube videos about self improvement, productivity, and my life in tech",
+  "url": "https://www.linkedin.com/in/joemerramos",
+  "title": "Joemer R. - Software Engineer at Google | LinkedIn"
+}
+{
+  "content": "# Hi, Im Joemer!\n\nIm an aspiring tech influencer and software engineer. By creating content and digital products, I hope that I could help inspire and educate people around the world. Join my newsletter for monthly progress updates!\n\n### 2920\n\n### Days of coding\n\n### 10,000+\n\n### Lines of code written\n\n### 1.5k\n\n### Followers\n\n### $0\n\n### Payments/Free Content\n\n## Documenting My Journey\n\n## 50+\n\n## hours of content [...] ### Youve explored my site this far. To thank you, heres advice to help you on your journey!\n\nFrom time to time, Ill also share thoughts on mental health and self improvement. But why? That doesnt have to do with coding! Heres the first of many valuable lessons, 10% of the battle is coding. 90% of software engineering is having the mental resilience to learn, grow, and adapt in the face of ambiguity, difficult tasks, and without a doubt, bugs that we somehow create. [...] Dive into my ever-growing collection of content! Stay tuned for more updates and adventures!\n\n### Whats my YouTube channel about?\n\nOn my channel, youll find a behind-the-scenes look into my life as a software engineer, tech content creator, and my coding journey! My goal for every video is to inspire and educate you by being authentic, sharing well-known coding practices, and showing my adaptive thought process as I code and debug.\n\n### Watch more videos",
+  "url": "https://joemerramos.com/",
+  "title": "Joemer Ramos - Blog About Life and Self Improvement"
+}
 
-		# Test case 2: Responsible behavior (Should be GOOD 10)
-		responsible_text = "I am applying for a loan to renovate my kitchen. I have a stable job and savings. I also have passive income through stocks and shares"
-		params_responsible = LLMEvaluationParams(
-			text_content=TextContent(
-				text=responsible_text,
-				key="renovation_plan.txt",
-				source="user_upload"
-			)
-		)
+"""
+		]
 
 		print(f"Starting verification...", flush=True)
 		try:
 			with open("verification_output.txt", "w") as f:
-				f.write(f"Testing with text: '{gambling_text}'\n")
-				print(f"Testing with text: '{gambling_text}'", flush=True)
+				for i, prompt_text in enumerate(prompts, 1):
+					f.write(f"\n{'='*60}\n")
+					f.write(f"Test Case {i}\n")
+					f.write(f"{'='*60}\n")
+					f.write(f"Testing with text: '{prompt_text}'\n\n")
+					print(f"\nTest Case {i}: '{prompt_text}'", flush=True)
 
-				result_gambling = await llm_evaluate_loan(params_gambling)
+					# Create TextContent for this prompt
+					content = TextContent(
+						text=prompt_text,
+						key=f"test_prompt_{i}.txt",
+						source="user_upload"
+					)
 
-				f.write(f"Result: Score={result_gambling.score}, Description='{result_gambling.description}'\n")
-				print(f"Result: Score={result_gambling.score}, Description='{result_gambling.description}'", flush=True)
+					# Evaluate the prompt
+					evidence_list = await llm_evaluate_loan(content)
 
-
-
-				f.write(f"\nTesting with text: '{responsible_text}'\n")
-				print(f"\nTesting with text: '{responsible_text}'", flush=True)
-
-				result_responsible = await llm_evaluate_loan(params_responsible)
-
-				f.write(f"Result: Score={result_responsible.score}, Description='{result_responsible.description}'\n")
-				print(f"Result: Score={result_responsible.score}, Description='{result_responsible.description}'",
-					  flush=True)
+					# Display results
+					if evidence_list:
+						f.write(f"Found {len(evidence_list)} evidence item(s):\n")
+						print(f"Found {len(evidence_list)} evidence item(s):", flush=True)
+						for j, evidence in enumerate(evidence_list, 1):
+							f.write(f"  Evidence {j}:\n")
+							f.write(f"    Score: {evidence.score}\n")
+							f.write(f"    Citation: {evidence.citation}\n")
+							f.write(f"    Description: {evidence.description}\n")
+							f.write(f"    Source: {evidence.source}\n")
+							print(f"  Evidence {j}: Score={evidence.score}, Citation='{evidence.citation}', Description='{evidence.description}'", flush=True)
+					else:
+						f.write("No evidence found (empty list)\n")
+						print("No evidence found (empty list)", flush=True)
 		except Exception as e:
 			print(f"Error: {e}", flush=True)
 			import traceback

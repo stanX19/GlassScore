@@ -15,9 +15,13 @@ class UserProfile(BaseModel):
     loan_term: int
 
 class EvaluationEvidence(BaseModel):
+    id: int = 0
     score: int
     description: str
+    citation:  str
     source: str
+    valid: bool = True
+    invalidate_reason: str = ""
 
 class AppSession(BaseModel):
     session_id: int
@@ -28,3 +32,13 @@ class AppSession(BaseModel):
 class AttachContentRequest(BaseModel):
     session_id: int
     text_content: TextContent
+
+class UpdateProfileRequest(BaseModel):
+    session_id: int
+    user_profile: UserProfile
+
+class UpdateEvidenceRequest(BaseModel):
+    session_id: int
+    evidence_id: int
+    valid: bool
+    invalidate_reason: str = ""
