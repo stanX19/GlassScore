@@ -22,16 +22,16 @@ async def reevaluate_invalidated_evidence(
     - Assistant: Original LLM response (score, citation, description)
     - Human: User's invalidation reason
     
-    The LLM can then:
-    1. Accept the invalidation and provide corrected assessment (typically 0 or +2)
-    2. Reject the invalidation if the user's reason is unreasonable (rare)
+    The LLM accepts the invalidation and can either:
+    1. Do nothing (return empty list) if the evidence should simply be removed
+    2. Provide one new evidence item if there's alternative information to consider
     
     Args:
         session: The session containing text content and evidence
         original_evidence: The evidence that was invalidated
         
     Returns:
-        List containing exactly one EvaluationEvidence item (single-item list for consistency)
+        Empty list if no new evidence, or list with one EvaluationEvidence item
     """
     
     # Retrieve original text content if available
@@ -40,7 +40,8 @@ async def reevaluate_invalidated_evidence(
         text_content = session.text_content_dict.get(original_evidence.text_content_key)
         if text_content:
             original_text = text_content.text
-    
+    if original_text is None:
+        original_text = original_evidence.description
     # If no original text found, we can't properly re-evaluate
     if not original_text:
         return [EvaluationEvidence(
@@ -66,26 +67,35 @@ Analyze the text for behavioral signals and assign a score based on the followin
 		"citation": original_evidence.citation,
 		"description": original_evidence.description
 	})
-    system_prompt2 = """Please re-evaluate the original text considering this feedback. You have two options:
+    system_prompt2 = """You must ONLY consider feedback that contradicts the specific evidence the user invalidated.
 
-1. **Accept the invalidation**: If the reviewer's concern is valid, provide a corrected assessment. Typically this would be:
-   - Score 0 (neutral/no evidence) if the original interpretation was wrong
-   - Score +2 if there's actually positive information that was missed
-   - Only use negative scores if there's genuinely concerning information
+STRICT RULES:
+1. You are NOT allowed to search for or cite any part of the original text unless it directly relates to the feedback.
+2. You must NOT introduce new concerns, risks, job stability claims, gambling mentions, or any new insights that the user did not bring up in their feedback.
+3. Your ONLY task is to decide:
+   - Should the evidence be removed? (then return an empty list)
+   - Or is there a corrected version of THIS SAME evidence based ONLY on the user's reasoning?
 
-2. **Reject the invalidation**: If the reviewer's reason is unreasonable or contradicts clear evidence in the text, you may maintain the original assessment. However, this should be RARE and only when the original evaluation was clearly correct.
+4. You may NOT generate evidence about any topic EXCEPT the one covered by the invalidated evidence.
 
+OUTPUT FORMAT:
 Return a JSON object with:
-- "action": Either "accept" or "reject"
-- "reasoning": Brief explanation of your decision (max 20 words)
-- "evidence": If action is "accept", provide a list of new evidence items (same format as before). If "reject", return empty list.
+- "reasoning": max 20 words explaining why the evidence is removed or corrected.
+- "evidence": EITHER empty list or exactly one item.
 
-Each evidence item should have:
-- "score": The integer score (2, 0, -5, or -10)
-- "citation": Exact excerpt supporting this evaluation (max 10 words)
-- "description": Brief explanation (max 15 words)
+Each evidence item:
+- "score": one of 2, 0, -5, -10
+- "citation": up to 10 words FROM TEXT, ONLY if related to feedback
+- "description": max 15 words, ONLY correcting the same topic as the original evidence
+
+If the feedback says the evidence is irrelevant, outdated, incorrect, or should be removed, return an empty list.
+If the feedback clarifies the same topic, provide a corrected single evidence item.
 """
 
+    try:
+        invalidation_reason = original_evidence.invalidate_reason.split("Reason: ")[1]
+    except IndexError:
+        invalidation_reason = original_evidence.invalidate_reason
     # Build messages list for LLM
     messages = [
         SystemMessage(system_prompt),
@@ -93,7 +103,7 @@ Each evidence item should have:
         AIMessage(assistant_response),
         SystemMessage("User marked this evidence as INVALID"),
         SystemMessage(system_prompt2),
-        HumanMessage(original_evidence.invalidate_reason.split("Reason: ")[1]),
+        HumanMessage(invalidation_reason),
     ]
     print(f"Invalidation reevaluate started {original_evidence.invalidate_reason}")
 
@@ -106,38 +116,22 @@ Each evidence item should have:
         
         if response["status"] == "ok" and "json" in response:
             data = response["json"]
-            action = data.get("action", "accept")
             reasoning = data.get("reasoning", "No reasoning provided")
             evidence_list = data.get("evidence", [])
             
-            if action == "reject":
-                # LLM rejected the invalidation - keep original score
+            # LLM accepted invalidation - return new evidence if provided, otherwise empty list
+            if evidence_list:
+                item = evidence_list[0]  # Take only the first evidence
                 return [EvaluationEvidence(
-                    score=original_evidence.score,
-                    description=f"Re-evaluation upheld original assessment: {original_evidence.description} With reason: {reasoning}",
-                    citation=original_evidence.citation,
+                    score=item.get("score", 0),
+                    description=item.get("description", "No description provided."),
+                    citation=item.get("citation", ""),
                     source=original_evidence.source,
                     text_content_key=original_evidence.text_content_key
                 )]
             else:
-                # LLM accepted invalidation - return first corrected evidence or default
-                if evidence_list:
-                    item = evidence_list[0]  # Take only the first evidence
-                    return [EvaluationEvidence(
-                        score=item.get("score", 0),
-                        description=item.get("description", "No description provided."),
-                        citation=item.get("citation", ""),
-                        source=original_evidence.source,
-                        text_content_key=original_evidence.text_content_key
-                    )]
-                else:
-                    return [EvaluationEvidence(
-                        score=0,
-                        description=f"Re-evaluation accepted invalidation: {reasoning}",
-                        citation="",
-                        source=original_evidence.source,
-                        text_content_key=original_evidence.text_content_key
-                    )]
+                # No new evidence - invalidation accepted, evidence removed
+                return []
 
         return [EvaluationEvidence(
             score=0,
@@ -160,7 +154,7 @@ if __name__ == "__main__":
     import asyncio
     
     # Create test session with sample data
-    test_text = "I work at a stable company for 5 years and have consistent income. I gamble occasionally on weekends."
+    test_text = "I work at a stable company for 5 years and have consistent income. I also gamble in my free time"
     
     test_session = AppSession(
         session_id=1,
@@ -176,12 +170,12 @@ if __name__ == "__main__":
     # Create original evidence that will be invalidated
     original_evidence = EvaluationEvidence(
         id=1,
-        score=2,
-        description="Stable employment for 5 years shows reliability",
-        citation="work at a stable company for 5 years",
+        score=-20,
+        description="Stable job and income",
+        citation="stable company for 5 years",
         source="original evaluation",
         valid=False,
-        invalidate_reason="User feedback: Reason: This doesn't account for the gambling behavior mentioned",
+        invalidate_reason="reject",
         text_content_key="test.txt"
     )
     
