@@ -89,6 +89,9 @@ export const DataFill: React.FC = () => {
                 await apiService.attachContent(session.session_id, content);
             }
 
+            // 4. Start Evaluation (Trigger background tasks)
+            await apiService.startEvaluation(session.session_id);
+
             // Navigate to Evaluation
             navigate('/evaluation', { state: { sessionId: session.session_id, profileName: profile.name } });
         } catch (error) {

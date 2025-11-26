@@ -46,6 +46,12 @@ class ApiService {
     getStreamUrl(): string {
         return `${API_BASE_URL}/evaluate/stream`;
     }
+
+    async startEvaluation(sessionId: number): Promise<void> {
+        await axios.post(`${API_BASE_URL}/evaluate/start`, {
+            session_id: sessionId
+        });
+    }
 }
 
 export const apiService = new ApiService();

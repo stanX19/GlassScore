@@ -6,51 +6,78 @@ from src.services.evaluation.web_evaluator import generate_web_tasks
 import asyncio
 
 
-async def evaluate_loan_stream(request: EvaluationRequest):
-    session = await session_service.get_session(request.session_id)
+async def start_evaluation(session_id: int) -> None:
+    """
+    Triggers evaluation process in background without streaming.
+    Results are pushed to session's evidence queue for later streaming.
+    """
+    session = await session_service.get_session(session_id)
     if not session:
-        yield EvaluationEvidence(
-            score=0,
-            description=f"Session {request.session_id} not found",
-            source="System Error"
-        )
-        return
+        raise ValueError(f"Session {session_id} not found")
+
+    # Initialize evaluation
+    await session_service.start_evaluation(session_id)
+
+    # Send start event
+    start_event = EvaluationEvidence(
+        score=0,
+        description="Evaluation started",
+        citation="",
+        source="System",
+        event_type="evaluation_start"
+    )
+    await session_service.push_evidence_to_stream(session_id, start_event)
 
     # 1. ML Evaluation
     ml_task = asyncio.create_task(ml_evaluate_loan(session.user_profile))
 
     # 2. Web Evaluation Tasks
-    # generate_web_tasks returns a list of tasks
-    web_tasks = await generate_web_tasks(request.session_id)
+    web_tasks = await generate_web_tasks(session_id)
 
     # 3. LLM Evaluation Tasks for all text content
     llm_tasks = []
-    if session.text_content_list:
-        for content in session.text_content_list:
-            # Pass ML task to LLM evaluator
+    if session.text_content_dict:
+        for content in session.text_content_dict.values():
             llm_tasks.append(asyncio.create_task(llm_evaluate_loan(content, [ml_task])))
 
     # Combine all tasks
     all_tasks = [ml_task] + web_tasks + llm_tasks
+    session.pending_tasks = len(all_tasks)
 
-    # Stream results as they complete
-    for future in asyncio.as_completed(all_tasks):
-        try:
-            result = await future
-            
-            # Result can be a single Evidence or a list of Evidence
-            if isinstance(result, list):
-                for item in result:
-                    yield item
-            elif isinstance(result, EvaluationEvidence):
-                yield result
+    # Background task to process results and push to queue
+    async def process_tasks():
+        for future in asyncio.as_completed(all_tasks):
+            try:
+                result = await future
                 
-        except Exception as e:
-            yield EvaluationEvidence(
-                score=0,
-                description=f"Error in evaluation task: {str(e)}",
-                source="System Error"
-            )
+                # Result can be a single Evidence or a list of Evidence
+                if isinstance(result, list):
+                    for item in result:
+                        await session_service.push_evidence_to_stream(session_id, item)
+                elif isinstance(result, EvaluationEvidence):
+                    await session_service.push_evidence_to_stream(session_id, result)
+                    
+            except Exception as e:
+                error_evidence = EvaluationEvidence(
+                    score=0,
+                    description=f"Error in evaluation task: {str(e)}",
+                    source="System Error"
+                )
+                await session_service.push_evidence_to_stream(session_id, error_evidence)
+        
+        # Send completion event
+        completion_event = EvaluationEvidence(
+            score=0,
+            description="Initial evaluation completed",
+            citation="",
+            source="System",
+            event_type="evaluation_complete"
+        )
+        await session_service.push_evidence_to_stream(session_id, completion_event)
+        await session_service.finish_evaluation(session_id)
+
+    # Start background processing
+    asyncio.create_task(process_tasks())
 
 if __name__ == "__main__":
     from src.models.session import UserProfile, TextContent
@@ -92,16 +119,22 @@ if __name__ == "__main__":
         
         print("Added 3 text content items")
 
-        # 3. Run evaluation
-        print("Starting evaluation stream...")
-        request = EvaluationRequest(session_id=session.session_id)
-        async for evidence in evaluate_loan_stream(request):
+        # 3. Start evaluation (non-blocking)
+        print("Starting evaluation...")
+        await start_evaluation(session.session_id)
+        
+        # 4. Stream results from queue
+        print("Streaming results...")
+        while True:
+            evidence = await session.evidence_queue.get()
             print(f"\nReceived Evidence:")
             print(f"  Score: {evidence.score}")
             print(f"  Description: {evidence.description}")
             print(f"  Source: {evidence.source}")
             if evidence.citation:
                 print(f"  Citation: {evidence.citation}")
+            if evidence.event_type == "evaluation_complete":
+                break
 
     import sys
     if sys.platform.startswith("win"):

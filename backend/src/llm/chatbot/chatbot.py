@@ -56,11 +56,6 @@ class Chatbot:
         available_tools = [
             tools.calc, 
         ]
-        if self.current_user:
-            available_tools.extend([
-                tools.perform_adr,
-                tools.create_add_medicine_tool(self.current_user),
-            ])
         # Filter out None values (when current_user is None)
         available_tools = [t for t in available_tools if t is not None]
         self.handler = ToolContextHandler(available_tools)

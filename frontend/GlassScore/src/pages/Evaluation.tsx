@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { apiService } from '../utils/api';
-import type { EvaluationEvidence } from '../types';
+import type { EvaluationEvidence, AppSession } from '../types';
 import { EvidenceCard } from '../components/EvidenceCard';
 import { EvidenceModal } from '../components/EvidenceModal';
 import { ScoreBar } from '../components/ScoreBar';
@@ -17,6 +17,8 @@ export const Evaluation: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [totalScore, setTotalScore] = useState(0);
     const [isLoading, setIsLoading] = useState(true);
+    const [session, setSession] = useState<AppSession | null>(null);
+    const streamInitiatedRef = useRef(false);
 
     const username = localStorage.getItem('glassscore_username') || 'Unknown User';
 
@@ -32,22 +34,35 @@ export const Evaluation: React.FC = () => {
             return;
         }
 
+        // Reset stream flag for new session
+        streamInitiatedRef.current = false;
+
         const initSession = async () => {
             try {
                 // First, try to fetch existing session data
-                const session = await apiService.getSession(sessionId);
-                if (session.evidence_list && session.evidence_list.length > 0) {
-                    // Evidence already exists, just display it (don't re-stream to avoid duplicates)
-                    setEvidences(session.evidence_list);
-                    setIsLoading(false);
-                    return; // Don't start streaming
+                const sessionData = await apiService.getSession(sessionId);
+                setSession(sessionData); // Store session for text content access
+                if (sessionData.evidence_list && sessionData.evidence_list.length > 0) {
+                    // Evidence already exists, display it
+                    setEvidences(sessionData.evidence_list);
+                    // If we have evidence, we might still want to listen for updates if the evaluation isn't "complete"
+                    // But for now, let's assume if we load from DB, we just show it.
+                    // However, to support re-evaluation after page reload, we should probably connect to stream anyway?
+                    // The backend says "Stream stays open indefinitely".
+                    // So we should probably always connect to stream to get updates.
+                    // But we don't want to duplicate evidence.
+                    // Let's connect to stream but be careful about duplicates.
                 }
             } catch (error) {
                 console.error('Failed to fetch existing session:', error);
-                // Continue to streaming if fetch fails
             }
 
-            // If no existing evidence, start streaming
+            // Always start streaming to catch new events or re-evaluations
+            if (streamInitiatedRef.current) {
+                return;
+            }
+            streamInitiatedRef.current = true;
+            
             const fetchStream = async () => {
                 try {
                     const response = await fetch(apiService.getStreamUrl(), {
@@ -68,7 +83,8 @@ export const Evaluation: React.FC = () => {
                     while (true) {
                         const { value, done } = await reader.read();
                         if (done) {
-                            setIsLoading(false);
+                            // Stream closed unexpectedly (network issue?) or server closed it
+                            console.log('Stream closed');
                             break;
                         }
                         
@@ -79,12 +95,37 @@ export const Evaluation: React.FC = () => {
                             if (line.startsWith('data: ')) {
                                 try {
                                     const data = JSON.parse(line.slice(6));
-                                    setEvidences(prev => {
-                                        // Avoid duplicates by ID
-                                        if (prev.find(e => e.id === data.id)) return prev;
-                                        return [...prev, data];
-                                    });
-                                    setIsLoading(false);
+                                    
+                                    if (data.event_type === 'evaluation_start') {
+                                        console.log('Evaluation started');
+                                        setIsLoading(true);
+                                    } else if (data.event_type === 'evaluation_complete') {
+                                        console.log('Initial evaluation completed');
+                                        setIsLoading(false);
+                                        // Do NOT close the stream, keep listening for re-evaluations
+                                    } else if (data.event_type === 'evidence' || !data.event_type) {
+                                        // Handle evidence
+                                        setEvidences(prev => {
+                                            // Check if evidence with this ID already exists
+                                            const existingIndex = prev.findIndex(e => e.id === data.id);
+                                            if (existingIndex >= 0) {
+                                                // Update existing evidence (e.g. if it was modified)
+                                                // But wait, re-evaluation creates NEW evidence with NEW ID.
+                                                // So we shouldn't need to update existing ones usually, unless the backend updates them in place?
+                                                // The backend says: "Original evidence remains in the list (not replaced)"
+                                                // "New evidence is pushed... Gets new id"
+                                                // So we just add it.
+                                                // However, we should avoid duplicates if we re-connected.
+                                                return prev;
+                                            }
+                                            return [...prev, data];
+                                        });
+                                        
+                                        // If we receive evidence, we are definitely not "loading" anymore in terms of "empty state"
+                                        // But we might still be "evaluating".
+                                        // Let's keep isLoading true until evaluation_complete OR we have some evidence?
+                                        // Actually, if we have evidence, we can show it.
+                                    }
                                 } catch (e) {
                                     console.error('Error parsing SSE data:', e);
                                 }
@@ -101,7 +142,7 @@ export const Evaluation: React.FC = () => {
         };
 
         initSession();
-    }, [sessionId, navigate, username]);
+    }, [sessionId, username]);
 
     // Recalculate score whenever evidences change
     useEffect(() => {
@@ -137,22 +178,32 @@ export const Evaluation: React.FC = () => {
         }
     };
 
+    const handleUndo = async (evidenceId: number) => {
+        try {
+            if (!sessionId) return;
+            
+            // Optimistic update
+            setEvidences(prev => prev.map(e => 
+                e.id === evidenceId ? { ...e, valid: true, invalidate_reason: '' } : e
+            ));
+
+            // API call
+            await apiService.updateEvidence(sessionId, evidenceId, true, '');
+            
+            // Update selected evidence if modal is open
+            if (selectedEvidence?.id === evidenceId) {
+                setSelectedEvidence(prev => prev ? { ...prev, valid: true, invalidate_reason: '' } : null);
+            }
+        } catch (error) {
+            console.error('Failed to undo invalidation:', error);
+        }
+    };
+
     // Separate and sort evidences
     const validEvidences = evidences.filter(e => e.valid);
     const positiveNeutral = validEvidences.filter(e => e.score >= 0).sort((a, b) => b.score - a.score);
     const negative = validEvidences.filter(e => e.score < 0).sort((a, b) => a.score - b.score);
     const invalidated = evidences.filter(e => !e.valid);
-
-    // Calculate column distribution (out of 4 total columns)
-    const totalValid = positiveNeutral.length + negative.length;
-    let positiveCols = 2;
-    let negativeCols = 2;
-
-    if (totalValid > 0) {
-        const ratio = positiveNeutral.length / totalValid;
-        positiveCols = Math.max(1, Math.min(3, Math.round(ratio * 4)));
-        negativeCols = 4 - positiveCols;
-    }
 
     return (
         <div className="evaluation-container">
@@ -184,77 +235,70 @@ export const Evaluation: React.FC = () => {
                             <p>No evidence found. The evaluation may have completed already.</p>
                         </div>
                     ) : (
-                        <div className="evidence-sections">
-                            {/* Positive/Neutral Section */}
-                            {positiveNeutral.length > 0 && (
-                                <div className="evidence-section">
-                                    <h2 className="section-title positive-title">
-                                        Positive & Neutral Evidence ({positiveNeutral.length})
-                                    </h2>
-                                    <div 
-                                        className="evidence-grid" 
-                                        style={{ 
-                                            gridTemplateColumns: `repeat(${positiveCols}, 1fr)` 
-                                        }}
-                                    >
-                                        {positiveNeutral.map((evidence) => (
-                                            <EvidenceCard 
-                                                key={evidence.id} 
-                                                evidence={evidence} 
-                                                onClick={() => handleEvidenceClick(evidence)} 
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
+                        <>
+                            {/* Fixed 2+2 column grid: 2 cols for positive/neutral, 2 cols for negative */}
+                            <div 
+                                className="evidence-grid-combined"
+                                style={{
+                                    gridTemplateColumns: '1fr 1fr 1fr 1fr'
+                                }}
+                            >
+                                {/* Positive/Neutral cards in first 2 columns */}
+                                {positiveNeutral.map((evidence) => (
+                                    <EvidenceCard 
+                                        key={evidence.id} 
+                                        evidence={evidence} 
+                                        onClick={() => handleEvidenceClick(evidence)} 
+                                        badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                    />
+                                ))}
+                                
+                                {/* Negative cards in last 2 columns */}
+                                {negative.map((evidence) => (
+                                    <EvidenceCard 
+                                        key={evidence.id} 
+                                        evidence={evidence} 
+                                        onClick={() => handleEvidenceClick(evidence)} 
+                                        badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                    />
+                                ))}
+                            </div>
 
-                            {/* Negative Section */}
-                            {negative.length > 0 && (
-                                <div className="evidence-section">
-                                    <h2 className="section-title negative-title">
-                                        Negative Evidence ({negative.length})
-                                    </h2>
-                                    <div 
-                                        className="evidence-grid" 
-                                        style={{ 
-                                            gridTemplateColumns: `repeat(${negativeCols}, 1fr)` 
-                                        }}
-                                    >
-                                        {negative.map((evidence) => (
-                                            <EvidenceCard 
-                                                key={evidence.id} 
-                                                evidence={evidence} 
-                                                onClick={() => handleEvidenceClick(evidence)} 
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Invalidated Section */}
+                            {/* Invalidated Section at the bottom */}
                             {invalidated.length > 0 && (
-                                <div className="evidence-section">
-                                    <h2 className="section-title invalidated-title">
+                                <div className="invalidated-section">
+                                    <h2 className="section-title">
                                         Invalidated Evidence ({invalidated.length})
                                     </h2>
-                                    <div className="evidence-grid">
+                                    <div className="evidence-grid-invalidated">
                                         {invalidated.map((evidence) => (
                                             <EvidenceCard 
                                                 key={evidence.id} 
                                                 evidence={evidence} 
                                                 onClick={() => handleEvidenceClick(evidence)} 
+                                                badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
                                             />
                                         ))}
                                     </div>
                                 </div>
                             )}
-                        </div>
+                        </>
                     )}
                 </main>
 
                 {/* Score Bar Sidebar */}
                 <aside className="score-sidebar">
                     <ScoreBar score={totalScore} />
+                    {isLoading ? (
+                        <div className="sidebar-loading">
+                            <div className="spinner-small"></div>
+                            <span className="loading-text">Evaluation ongoing</span>
+                        </div>
+                    ) : (
+                        <div className="sidebar-complete">
+                            <div className="checkmark">✓</div>
+                        </div>
+                    )}
                 </aside>
             </div>
 
@@ -264,7 +308,9 @@ export const Evaluation: React.FC = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 onInvalidate={handleInvalidate}
+                onUndo={handleUndo}
                 username={username}
+                session={session}
             />
         </div>
     );

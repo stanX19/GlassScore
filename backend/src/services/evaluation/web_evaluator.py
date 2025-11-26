@@ -101,13 +101,13 @@ async def _verify_search_results(
 
 async def _generate_queries(session_id: int) -> list[dict]:
     session = await session_service.get_session(session_id)
-    if not session or not session.text_content_list:
+    if not session or not session.text_content_dict:
         return []
 
     # Combine all text content for context
     context_text = session.user_profile.model_dump_json(indent=2) + "\n\n"
     context_text += "\n\n".join([
-        f"Source: {c.source}\nContent: {c.text}" for c in session.text_content_list
+        f"Source: {c.source}\nContent: {c.text}" for c in session.text_content_dict.values()
     ])
 
     prompt = f"""
@@ -152,7 +152,7 @@ async def _generate_queries(session_id: int) -> list[dict]:
         return []
 
 
-async def _execute_web_task(query_task: Task, index: int, user_profile: UserProfile = None) -> list[EvaluationEvidence]:
+async def _execute_web_task(query_task: Task, index: int, session_id: int, user_profile: UserProfile = None) -> list[EvaluationEvidence]:
     try:
         queries = await query_task
         if index < len(queries):
@@ -160,7 +160,7 @@ async def _execute_web_task(query_task: Task, index: int, user_profile: UserProf
             query = item.get("query")
             objective = item.get("objective")
             if query:
-                return await web_evaluate(query, objective, user_profile)
+                return await web_evaluate(query, objective, session_id, user_profile)
     except Exception as e:
         print(f"Error in web task {index}: {e}")
     return []
@@ -175,11 +175,11 @@ async def generate_web_tasks(session_id: int) -> list[Task]:
     
     tasks = []
     for i in range(5):
-        tasks.append(asyncio.create_task(_execute_web_task(query_task, i, user_profile)))
+        tasks.append(asyncio.create_task(_execute_web_task(query_task, i, session_id, user_profile)))
     return tasks
 
 
-async def web_evaluate(query: str, objective: str, user_profile: UserProfile = None) -> list[EvaluationEvidence]:
+async def web_evaluate(query: str, objective: str, session_id: int, user_profile: UserProfile = None) -> list[EvaluationEvidence]:
     print(f"Executing web search: {query}\n    Objective: {objective})")
     
     search_results = []
@@ -190,7 +190,8 @@ async def web_evaluate(query: str, objective: str, user_profile: UserProfile = N
             score=0,
             description=f"TAVILY_API_KEY not found. Web search unavailable for '{query}'",
             citation="",
-            source="web_search"
+            source="web_search",
+            text_content_key=None
         )]
     try:
         tool = TavilySearchResults(max_results=5)
@@ -216,8 +217,14 @@ async def web_evaluate(query: str, objective: str, user_profile: UserProfile = N
     if user_profile:
         valid_indexes = await _verify_search_results(search_results, user_profile, objective)
         if not valid_indexes:
-            print(f"No search results matched the applicant's identity. Skipping evaluation.")
-            return []  # No false negatives
+            print(f"No search results matched the applicant's identity. Returning neutral evidence.")
+            return [EvaluationEvidence(
+                score=0,
+                description=f"No exact match of '{query}' found on web",
+                citation="",
+                source="web_search",
+                text_content_key=None
+            )]
         
         # Filter to only valid results
         search_results = [search_results[i] for i in valid_indexes if i < len(search_results)]
@@ -234,9 +241,12 @@ async def web_evaluate(query: str, objective: str, user_profile: UserProfile = N
 
     content = TextContent(
         text=combined_text,
-        key=f"web_search_{query[:10]}",
-        source="web_search_aggregated"
+        key=f"web_search_{query[:30]}",  # Use query prefix as base key
+        source="web_search"
     )
+    
+    # Save TextContent to session so it can be retrieved during re-evaluation
+    final_key = await session_service.save_text_content(session_id, content)
     
     evidences = await llm_evaluate_loan(content, objective=objective)
     valid_evidences = []

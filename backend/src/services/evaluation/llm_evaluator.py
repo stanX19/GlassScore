@@ -9,7 +9,8 @@ from src.models.session import TextContent
 async def llm_evaluate_loan(
 	content: TextContent,
 	other_evidence_tasks: list[asyncio.Task[EvaluationEvidence]] = None,
-	objective: str = None
+	objective: str = None,
+	set_text_content_key: bool = True
 ) -> list[EvaluationEvidence]:
 	other_evidence_tasks = other_evidence_tasks or []
 	
@@ -88,26 +89,30 @@ async def llm_evaluate_loan(
 			# Convert each evidence item to EvaluationEvidence object
 			result = []
 			for item in evidence_list:
-				result.append(EvaluationEvidence(
+				evidence = EvaluationEvidence(
 					score=item.get("score", 0),
 					description=item.get("description", "No description provided."),
 					citation=item.get("citation", ""),
-					source=content.source
-				))
+					source=content.key,
+					text_content_key=content.key if set_text_content_key else None
+				)
+				result.append(evidence)
 			return result
 		else:
 			return [EvaluationEvidence(
 				score=0,
 				description=f"Failed to evaluate text: {response.get('text', 'Unknown error')}",
 				citation="",
-				source=content.source
+				source=content.key,
+				text_content_key=content.key if set_text_content_key else None
 			)]
 	except Exception as e:
 		return [EvaluationEvidence(
 			score=0,
 			description=f"Error during LLM evaluation: {str(e)}",
 			citation="",
-			source=content.source
+			source=content.key,
+			text_content_key=content.key if set_text_content_key else None
 		)]
 
 if __name__ == '__main__':

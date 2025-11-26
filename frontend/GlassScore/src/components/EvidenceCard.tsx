@@ -5,9 +5,10 @@ import './EvidenceCard.css';
 interface EvidenceCardProps {
     evidence: EvaluationEvidence;
     onClick: () => void;
+    badge?: string;
 }
 
-export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick }) => {
+export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick, badge }) => {
     const getScoreClass = () => {
         if (evidence.score > 0) return 'positive';
         if (evidence.score < 0) return 'negative';
@@ -51,6 +52,9 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick })
             </p>
             {!evidence.valid && (
                 <div className="evidence-invalid-badge">INVALIDATED</div>
+            )}
+            {badge && (
+                <div className="evidence-badge">{badge}</div>
             )}
         </div>
     );

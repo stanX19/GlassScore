@@ -25,7 +25,7 @@ export interface EvaluationEvidence {
 
 export interface AppSession {
     session_id: number;
-    text_content_list: TextContent[];
+    text_content_dict: Record<string, TextContent>;
     evidence_list: EvaluationEvidence[];
     user_profile: UserProfile | null;
 }
