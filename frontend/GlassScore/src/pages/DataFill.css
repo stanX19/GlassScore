@@ -14,7 +14,7 @@
 }
 
 .datafill-header {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    background: linear-gradient(135deg, var(--color-blue), color-mix(in srgb, var(--color-blue), black 20%));
     padding: 1.5rem;
     color: white;
 }
@@ -82,8 +82,8 @@
 .profile-input-group input:focus,
 .profile-input-group select:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-blue), transparent 90%);
 }
 
 .profile-display {
@@ -123,8 +123,8 @@
 
 .content-textarea:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-blue), transparent 90%);
 }
 
 .content-actions {
@@ -151,7 +151,7 @@
 }
 
 .btn-add {
-    background-color: #16a34a;
+    background-color: var(--color-green);
     color: white;
     font-weight: 700;
     padding: 0.5rem 1.5rem;
@@ -162,7 +162,7 @@
 }
 
 .btn-add:hover {
-    background-color: #15803d;
+    background-color: color-mix(in srgb, var(--color-green), black 10%);
 }
 
 .btn-add:disabled {
@@ -201,7 +201,7 @@
 }
 
 .btn-remove {
-    color: #ef4444;
+    color: var(--color-red);
     font-weight: 500;
     font-size: 0.875rem;
     background: none;
@@ -210,7 +210,7 @@
 }
 
 .btn-remove:hover {
-    color: #dc2626;
+    color: color-mix(in srgb, var(--color-red), black 10%);
 }
 
 .content-empty {
@@ -222,7 +222,7 @@
 
 .btn-start-evaluation {
     width: 100%;
-    background-color: #2563eb;
+    background-color: var(--color-blue);
     color: white;
     font-weight: 700;
     padding: 1rem;
@@ -235,7 +235,7 @@
 }
 
 .btn-start-evaluation:hover {
-    background-color: #1d4ed8;
+    background-color: color-mix(in srgb, var(--color-blue), black 10%);
     transform: scale(1.01);
 }
 

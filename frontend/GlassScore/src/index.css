@@ -6,6 +6,13 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Color Palette */
+  --color-green: #6BCB77;
+  --color-yellow: #FFD93D;
+  --color-orange: #FF9D23;
+  --color-red: #FF6B6B;
+  --color-blue: #4D96FF;
 }
 
 a {

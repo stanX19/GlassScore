@@ -4,7 +4,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #3b82f6, #9333ea);
+    background: linear-gradient(135deg, var(--color-blue), var(--color-green));
     padding: 1rem;
 }
 
@@ -48,12 +48,12 @@
 
 .onboarding-input:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-blue), transparent 50%);
 }
 
 .onboarding-button {
     width: 100%;
-    background-color: #2563eb;
+    background-color: var(--color-blue);
     color: white;
     font-weight: 700;
     padding: 0.75rem 1rem;
@@ -64,7 +64,7 @@
 }
 
 .onboarding-button:hover {
-    background-color: #1d4ed8;
+    background-color: color-mix(in srgb, var(--color-blue), black 10%);
 }
 
 .onboarding-button:disabled {

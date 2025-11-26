@@ -78,7 +78,7 @@
 
 .citation-box {
     background-color: #f9fafb;
-    border-left: 4px solid #2563eb;
+    border-left: 4px solid var(--color-blue);
     padding: 1rem;
     border-radius: 0.375rem;
     font-family: monospace;
@@ -107,12 +107,12 @@
 
 .invalidate-section textarea:focus {
     outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--color-blue);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-blue), transparent 90%);
 }
 
 .btn-invalidate {
-    background-color: #ef4444;
+    background-color: var(--color-red);
     color: white;
     font-weight: 700;
     padding: 0.75rem 1.5rem;
@@ -123,7 +123,7 @@
 }
 
 .btn-invalidate:hover {
-    background-color: #dc2626;
+    background-color: color-mix(in srgb, var(--color-red), black 10%);
 }
 
 .btn-invalidate:disabled {
@@ -132,21 +132,21 @@
 }
 
 .invalid-notice {
-    background-color: #fee2e2;
-    border: 1px solid #fecaca;
+    background-color: color-mix(in srgb, var(--color-red), white 80%);
+    border: 1px solid color-mix(in srgb, var(--color-red), white 60%);
     border-radius: 0.375rem;
     padding: 1rem;
     margin-bottom: 1rem;
 }
 
 .invalid-notice strong {
-    color: #991b1b;
+    color: color-mix(in srgb, var(--color-red), black 40%);
     display: block;
     margin-bottom: 0.5rem;
 }
 
 .invalid-notice p {
-    color: #7f1d1d;
+    color: color-mix(in srgb, var(--color-red), black 20%);
     font-size: 0.875rem;
     margin: 0;
 }

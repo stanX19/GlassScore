@@ -18,15 +18,15 @@
 }
 
 .evidence-card.positive {
-    border-left-color: #10b981;
+    border-left-color: var(--color-green);
 }
 
 .evidence-card.negative {
-    border-left-color: #ef4444;
+    border-left-color: var(--color-red);
 }
 
 .evidence-card.neutral {
-    border-left-color: #f59e0b;
+    border-left-color: var(--color-orange);
 }
 
 .evidence-card.invalid {
@@ -44,18 +44,18 @@
 }
 
 .evidence-score.positive {
-    background-color: #d1fae5;
-    color: #065f46;
+    background-color: color-mix(in srgb, var(--color-green), white 80%);
+    color: color-mix(in srgb, var(--color-green), black 40%);
 }
 
 .evidence-score.negative {
-    background-color: #fee2e2;
-    color: #991b1b;
+    background-color: color-mix(in srgb, var(--color-red), white 80%);
+    color: color-mix(in srgb, var(--color-red), black 40%);
 }
 
 .evidence-score.neutral {
-    background-color: #fef3c7;
-    color: #92400e;
+    background-color: color-mix(in srgb, var(--color-yellow), white 80%);
+    color: color-mix(in srgb, var(--color-yellow), black 40%);
 }
 
 .evidence-description {
@@ -74,8 +74,8 @@
 
 .evidence-invalid-badge {
     display: inline-block;
-    background-color: #fee2e2;
-    color: #991b1b;
+    background-color: color-mix(in srgb, var(--color-red), white 80%);
+    color: color-mix(in srgb, var(--color-red), black 40%);
     padding: 0.25rem 0.5rem;
     border-radius: 0.25rem;
     font-size: 0.75rem;
@@ -87,7 +87,7 @@
     position: absolute;
     top: 10px;
     right: 10px;
-    background-color: #8b5cf6;
+    background-color: var(--color-blue);
     color: white;
     padding: 2px 8px;
     border-radius: 12px;

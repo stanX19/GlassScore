@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { EvaluationEvidence, AppSession } from '../types';
+import { COLORS } from '../utils/color';
 import './EvidenceModal.css';
 
 interface EvidenceModalProps {
@@ -115,7 +116,7 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({
             <div>
                 {before}
                 <span className="citation-highlight" style={{
-                    backgroundColor: '#fef08a',
+                    backgroundColor: COLORS.YELLOW,
                     padding: '2px 4px',
                     borderRadius: '3px',
                     fontWeight: 'bold'
@@ -149,7 +150,7 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({
                                         bottom: '0.5rem',
                                         right: '0.5rem',
                                         padding: '0.5rem 1rem',
-                                        backgroundColor: '#ef4444',
+                                        backgroundColor: COLORS.RED,
                                         color: 'white',
                                         border: 'none',
                                         borderRadius: '0.375rem',
@@ -186,7 +187,7 @@ export const EvidenceModal: React.FC<EvidenceModalProps> = ({
                                 onClick={handleSourceClick}
                                 style={{ 
                                     cursor: 'pointer',
-                                    color: isUrl(evidence.source) ? '#2563eb' : '#059669',
+                                    color: isUrl(evidence.source) ? COLORS.BLUE : COLORS.GREEN,
                                     textDecoration: 'underline',
                                     wordBreak: 'break-all'
                                 }}

@@ -88,7 +88,7 @@ Each evidence item:
 - "citation": up to 10 words FROM TEXT, ONLY if related to feedback
 - "description": max 15 words, ONLY correcting the same topic as the original evidence
 
-If the feedback says the evidence is irrelevant, outdated, incorrect, or should be removed, return an empty list.
+If the feedback says the evidence is irrelevant, insignificant, outdated, incorrect, or should be removed, return an empty list.
 If the feedback clarifies the same topic, provide a corrected single evidence item.
 """
 
@@ -171,11 +171,13 @@ if __name__ == "__main__":
     original_evidence = EvaluationEvidence(
         id=1,
         score=-20,
-        description="Stable job and income",
-        citation="stable company for 5 years",
+        # description="Stable job and income",
+        # citation="stable company for 5 years",
+        description="Gambling is a huge red flag.",
+        citation="I also gamble in my free time",
         source="original evaluation",
         valid=False,
-        invalidate_reason="reject",
+        invalidate_reason="this is insignificant",
         text_content_key="test.txt"
     )
     

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { EvaluationEvidence } from '../types';
+import { COLORS } from '../utils/color';
 import './EvidenceCard.css';
 
 interface EvidenceCardProps {
@@ -44,7 +45,7 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick, b
                         target="_blank" 
                         rel="noopener noreferrer"
                         onClick={handleSourceClick}
-                        style={{ color: '#2563eb', textDecoration: 'underline' }}
+                        style={{ color: COLORS.BLUE, textDecoration: 'underline' }}
                     >
                         {evidence.source}
                     </a>
