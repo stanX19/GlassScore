@@ -1,0 +1,96 @@
+/* Horizontal score bar (legacy, kept for reference) */
+.score-bar-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 1rem;
+    z-index: 50;
+}
+
+.score-bar-content {
+    max-width: 80rem;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.score-bar-label {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 1.125rem;
+    white-space: nowrap;
+}
+
+.score-bar-track {
+    flex: 1;
+    height: 2rem;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    position: relative;
+    overflow: hidden;
+}
+
+.score-bar-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(to right, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+    transition: width 0.5s ease;
+    border-radius: 9999px;
+}
+
+.score-bar-value {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 1.5rem;
+    min-width: 4rem;
+    text-align: right;
+}
+
+/* Vertical score bar for sidebar */
+.score-bar-vertical {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+.score-value-top {
+    font-weight: 700;
+    color: #1f2937;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.score-bar-track-vertical {
+    flex: 1;
+    width: 2rem;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    position: relative;
+    overflow: hidden;
+    max-height: 400px;
+}
+
+.score-bar-fill-vertical {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(to top, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+    transition: height 0.5s ease;
+    border-radius: 9999px;
+}
+
+.score-label-bottom {
+    font-weight: 600;
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}

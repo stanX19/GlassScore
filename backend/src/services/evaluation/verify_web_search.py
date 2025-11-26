@@ -16,7 +16,7 @@ async def main():
     print("Creating session...")
     session = await session_service.create_session(
         user_profile=UserProfile(
-            name="Joemer R.",
+            name="Jermaine Cheah",
             age=30,
             gender="Male",
             income=50000,
@@ -32,7 +32,7 @@ async def main():
     await session_service.add_text_content(
         session_id,
         TextContent(
-            text="I am a software engineer at Google. I have been working there for 5 years. I also run a small coffee shop on weekends.",
+            text="I am hereby applying for a loan to renovate the office. I am the CTO of mindhive and i have stable income. I wish to repay all in 1 year within 12 installments. total RM10000000",
             key="intro.txt",
             source="user_upload"
         )

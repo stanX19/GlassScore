@@ -28,6 +28,8 @@ async def llm_evaluate_loan(
 			print(f"Error gathering other evidence: {e}")
 
 	base_instruction = "You are a credit score evaluator for a bank. Your task is to analyze the following text from a loan applicant and evaluate their behavior."
+	is_web_search = content.source.startswith("web_search")
+	
 	if objective:
 		base_instruction = f"You are a risk analyst. Your task is to analyze the following text with this objective: {objective}"
 
@@ -38,22 +40,36 @@ async def llm_evaluate_loan(
 		for ev in other_evidence_list:
 			context_info += f"- Score: {ev.score}\n- Insight: {ev.description}\n"
 
+	# Special instructions for web search results
+	web_search_warning = ""
+	if is_web_search:
+		web_search_warning = """
+	IMPORTANT: This text comes from web search results that have already been verified to match the applicant's identity.
+	However, be CAUTIOUS:
+	- Only cite information that is clearly relevant to credit risk
+	- Positive professional information (employment, achievements) should score +2
+	- Absence of negative information is NOT evidence (don't score it)
+	- Only assign negative scores (-5, -10) if you find actual concerning behavior (gambling, fraud, legal issues, financial instability)
+	- If the information is neutral or just biographical, return empty evidence list
+	"""
+
 	prompt = f"""
 	{base_instruction}
 	{context_info}
+	{web_search_warning}
 	
 	Text to evaluate:
 	"{content.text}"
 	
 	Analyze the text for behavioral signals and assign a score based on the following criteria:
-	- GOOD: 5 (Verified with evidence, logical behavior)
+	- GOOD: 2 (Verified with evidence, logical behavior, stable employment)
 	- NORMAL: 0 (Neutral, standard behavior)
-	- MINOR ISSUE: -10 (Slight concerns, illogical description, suspicious writings)
-	- WARNING: -20 (Red flags, gambling, instability, high risk, major inconsistencies)
+	- MINOR ISSUE: -5 (Slight concerns, illogical description, suspicious writings)
+	- WARNING: -10 (Red flags, gambling, instability, high risk, major inconsistencies)
 	
 	Return a JSON object with the following field:
 	- "evidence": A list of evidence items. Each item should have:
-		- "score": The integer score assigned (5, 0, -10, or -20).
+		- "score": The integer score assigned (2, 0, -5, or -10).
 		- "citation": The exact excerpt from the text that supports this evaluation (quote it directly, not more than 10 words).
 		- "description": A brief explanation of why this citation is concerning or noteworthy. Not more than 15 words.
 	

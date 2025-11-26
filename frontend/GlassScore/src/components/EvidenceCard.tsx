@@ -1,0 +1,57 @@
+import React from 'react';
+import type { EvaluationEvidence } from '../types';
+import './EvidenceCard.css';
+
+interface EvidenceCardProps {
+    evidence: EvaluationEvidence;
+    onClick: () => void;
+}
+
+export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick }) => {
+    const getScoreClass = () => {
+        if (evidence.score > 0) return 'positive';
+        if (evidence.score < 0) return 'negative';
+        return 'neutral';
+    };
+
+    const isUrl = (str: string) => {
+        try {
+            new URL(str);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
+    const handleSourceClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+    };
+
+    const scoreClass = getScoreClass();
+    const cardClass = `evidence-card ${scoreClass} ${!evidence.valid ? 'invalid' : ''}`;
+
+    return (
+        <div className={cardClass} onClick={onClick}>
+            <div className={`evidence-score ${scoreClass}`}>
+                {evidence.score > 0 ? '+' : ''}{evidence.score}
+            </div>
+            <p className="evidence-description">{evidence.description}</p>
+            <p className="evidence-source">
+                Source: {isUrl(evidence.source) ? (
+                    <a 
+                        href={evidence.source} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        onClick={handleSourceClick}
+                        style={{ color: '#2563eb', textDecoration: 'underline' }}
+                    >
+                        {evidence.source}
+                    </a>
+                ) : evidence.source}
+            </p>
+            {!evidence.valid && (
+                <div className="evidence-invalid-badge">INVALIDATED</div>
+            )}
+        </div>
+    );
+};

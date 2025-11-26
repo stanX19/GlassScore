@@ -16,6 +16,89 @@ from src.services.evaluation.llm_evaluator import llm_evaluate_loan
 from src.models.session import TextContent
 
 
+async def _verify_search_results(
+    search_results: list[dict],
+    user_profile: UserProfile,
+    query_objective: str
+) -> list[int]:
+    """
+    Verify which search results are relevant and accurate for the search objective.
+    For identity searches: verifies results match the applicant.
+    For factual searches: verifies results are relevant and credible.
+    Returns list of valid indexes (e.g., [0, 2] means results 0 and 2 are valid).
+    """
+    if not search_results:
+        return []
+    
+    # Format indexed results for LLM
+    indexed_results = ""
+    for i, result in enumerate(search_results):
+        indexed_results += f"\n--- Result Index {i} ---\n"
+        indexed_results += f"Title: {result.get('title', 'Unknown')}\n"
+        indexed_results += f"URL: {result.get('url', 'Unknown')}\n"
+        indexed_results += f"Content: {result['content'][:500]}...\n"  # Limit content length
+    
+    prompt = f"""
+    You are a search result verification specialist. Your task is to determine which web search results are relevant and useful for the given objective.
+    
+    Applicant Profile:
+    {user_profile.model_dump_json(indent=2)}
+    
+    Search Objective:
+    {query_objective}
+    
+    Search Results (indexed):
+    {indexed_results}
+    
+    Instructions:
+    Determine if this is an IDENTITY SEARCH or FACTUAL SEARCH:
+    
+    **IDENTITY SEARCH** (searching for a specific person):
+    - Only mark results as valid if they refer to the SAME person as the applicant
+    - Look for matching: exact name, employment, location, age, business specifics
+    - Be STRICT: Similar names or professions are NOT enough - need concrete matching evidence
+    - Reject results about different people with similar names
+    
+    **FACTUAL SEARCH** (checking facts, prices, general information):
+    - Mark results as valid if they contain relevant, credible information for the objective
+    - Accept authoritative sources, industry data, market information
+    - Reject irrelevant, off-topic, or unreliable sources
+    - Don't require identity matching - just topical relevance
+    
+    Return a JSON object with:
+    - "search_type": Either "identity" or "factual"
+    - "valid_indexes": A list of integer indexes for relevant results (e.g., [0, 2])
+    - "reasoning": Brief explanation for each valid index
+    
+    If NO results are relevant, return an empty list for "valid_indexes".
+    """
+    
+    try:
+        response = await rotating_llm.send_message_get_json(
+            messages=prompt,
+            temperature=0.2  # Low temperature for strict verification
+        )
+        
+        if response["status"] == "ok" and "json" in response:
+            data = response["json"]
+            search_type = data.get("search_type", "unknown")
+            valid_indexes = data.get("valid_indexes", [])
+            reasoning = data.get("reasoning", "No reasoning provided")
+            
+            print(f"Search verification ({search_type}): {len(valid_indexes)} valid out of {len(search_results)}")
+            print(f"Valid indexes: {valid_indexes}")
+            print(f"Reasoning: {reasoning}")
+            
+            return valid_indexes
+        else:
+            print(f"Failed to verify search results: {response.get('text')}")
+            return []  # Conservative: reject all if verification fails
+            
+    except Exception as e:
+        print(f"Error during identity verification: {e}")
+        return []  # Conservative: reject all on error
+
+
 async def _generate_queries(session_id: int) -> list[dict]:
     session = await session_service.get_session(session_id)
     if not session or not session.text_content_list:
@@ -35,10 +118,7 @@ async def _generate_queries(session_id: int) -> list[dict]:
     1. Verifying their employment or business claims.
     2. Checking for negative news, lawsuits, or financial scandals.
     3. Identifying social media presence that might contradict their claims.
-
-    IMPORTANT:
-    - Do NOT use search operators like "site:", "OR", "AND", or quotes for exact match.
-    - Use natural language queries optimized for semantic search.
+    4. Verifying their requested loan amount matches their purpose.
 
     Applicant Information:
     {context_text}
@@ -61,6 +141,7 @@ async def _generate_queries(session_id: int) -> list[dict]:
             for q in queries:
                 if "objective" in q:
                     q["objective"] = f"{applicant_summary}. Objective: {q['objective']}"
+            # input(json.dumps(queries, indent=2))
             return queries
         else:
             print(f"Failed to generate web queries: {response.get('text')}")
@@ -71,7 +152,7 @@ async def _generate_queries(session_id: int) -> list[dict]:
         return []
 
 
-async def _execute_web_task(query_task: Task, index: int) -> list[EvaluationEvidence]:
+async def _execute_web_task(query_task: Task, index: int, user_profile: UserProfile = None) -> list[EvaluationEvidence]:
     try:
         queries = await query_task
         if index < len(queries):
@@ -79,7 +160,7 @@ async def _execute_web_task(query_task: Task, index: int) -> list[EvaluationEvid
             query = item.get("query")
             objective = item.get("objective")
             if query:
-                return await web_evaluate(query, objective)
+                return await web_evaluate(query, objective, user_profile)
     except Exception as e:
         print(f"Error in web task {index}: {e}")
     return []
@@ -88,13 +169,17 @@ async def _execute_web_task(query_task: Task, index: int) -> list[EvaluationEvid
 async def generate_web_tasks(session_id: int) -> list[Task]:
     query_task = asyncio.create_task(_generate_queries(session_id))
     
+    # Get user profile for identity verification
+    session = await session_service.get_session(session_id)
+    user_profile = session.user_profile if session else None
+    
     tasks = []
     for i in range(5):
-        tasks.append(asyncio.create_task(_execute_web_task(query_task, i)))
+        tasks.append(asyncio.create_task(_execute_web_task(query_task, i, user_profile)))
     return tasks
 
 
-async def web_evaluate(query: str, objective: str) -> list[EvaluationEvidence]:
+async def web_evaluate(query: str, objective: str, user_profile: UserProfile = None) -> list[EvaluationEvidence]:
     print(f"Executing web search: {query}\n    Objective: {objective})")
     
     search_results = []
@@ -126,6 +211,19 @@ async def web_evaluate(query: str, objective: str) -> list[EvaluationEvidence]:
 
     if not search_results:
         return []
+    
+    # STAGE 1: Verify which results actually match the applicant
+    if user_profile:
+        valid_indexes = await _verify_search_results(search_results, user_profile, objective)
+        if not valid_indexes:
+            print(f"No search results matched the applicant's identity. Skipping evaluation.")
+            return []  # No false negatives
+        
+        # Filter to only valid results
+        search_results = [search_results[i] for i in valid_indexes if i < len(search_results)]
+        print(f"Proceeding with {len(search_results)} verified result(s)")
+    else:
+        print("Warning: No user profile provided for identity verification. Proceeding with all results.")
 
     # Combine all results into one text for the LLM
     combined_text = ""
