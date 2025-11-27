@@ -94,7 +94,7 @@
 
 GlassScore operates on a modern client-server architecture:
 
-![System Architecture](docs/system_architecture.png)
+![System Architecture](assets/system_architecture.png)
 
 **Data Flow:**
 1.  **Input:** User submits loan application data (structured) and supporting documents/statements (unstructured).
