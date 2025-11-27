@@ -114,11 +114,25 @@
     font-size: 1.125rem;
 }
 
-/* Single combined grid for left-right layout */
-.evidence-grid-combined {
+/* Wrapper for side-by-side grids */
+.evidence-grid-wrapper {
     display: grid;
-    gap: 1.5rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
     margin-bottom: 2rem;
+}
+
+/* Each section is a 2-column grid */
+.evidence-grid-section {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    align-content: start;
+}
+
+/* Wide cards span both columns within their section */
+.evidence-card.wide {
+    grid-column: span 2;
 }
 
 /* Invalidated section at bottom */

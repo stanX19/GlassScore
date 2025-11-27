@@ -243,75 +243,58 @@ export const Evaluation: React.FC = () => {
                         </div>
                     ) : (
                         <>
-                            {/* 2+2 column layout: left 2 for positives, right 2 for zeros/negatives */}
-                            <div className="evidence-grid-combined" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
-                                {/* Left 2 columns: Positives only */}
-                                {positives.map((evidence) => (
-                                    <EvidenceCard 
-                                        key={evidence.id} 
-                                        evidence={evidence} 
-                                        onClick={() => handleEvidenceClick(evidence)} 
-                                        badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                    />
-                                ))}
-                                
-                                {/* Right 2 columns: Zeros and negatives */}
-                                {zerosAndNegatives.map((evidence) => (
-                                    <EvidenceCard 
-                                        key={evidence.id} 
-                                        evidence={evidence} 
-                                        onClick={() => handleEvidenceClick(evidence)} 
-                                        badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                    />
-                                ))}
-                            </div>
-
-                            {/* Invalidated sections below their respective columns */}
-                            {(invalidatedPositives.length > 0 || invalidatedZerosNegatives.length > 0) && (
-                                <div className="invalidated-sections-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem' }}>
-                                    {/* Left: Rejected positives */}
-                                    <div className="invalidated-section">
-                                        {invalidatedPositives.length > 0 && (
-                                            <>
-                                                <h2 className="section-title">
-                                                    Rejected Positive Evidence ({invalidatedPositives.length})
-                                                </h2>
-                                                <div className="evidence-grid-invalidated" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                                    {invalidatedPositives.map((evidence) => (
-                                                        <EvidenceCard 
-                                                            key={evidence.id} 
-                                                            evidence={evidence} 
-                                                            onClick={() => handleEvidenceClick(evidence)} 
-                                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
+                            {/* Two separate 2-column grids side by side */}
+                            <div className="evidence-grid-wrapper">
+                                {/* Left side: Positive scores (2 columns) */}
+                                <div className="evidence-grid-section">
+                                    {/* Valid positives */}
+                                    {positives.map((evidence) => (
+                                        <EvidenceCard 
+                                            key={evidence.id} 
+                                            evidence={evidence} 
+                                            onClick={() => handleEvidenceClick(evidence)} 
+                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                            isWide={evidence.score >= 10}
+                                        />
+                                    ))}
                                     
-                                    {/* Right: Rejected zeros/negatives */}
-                                    <div className="invalidated-section">
-                                        {invalidatedZerosNegatives.length > 0 && (
-                                            <>
-                                                <h2 className="section-title">
-                                                    Rejected Negative Evidence ({invalidatedZerosNegatives.length})
-                                                </h2>
-                                                <div className="evidence-grid-invalidated" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                                                    {invalidatedZerosNegatives.map((evidence) => (
-                                                        <EvidenceCard 
-                                                            key={evidence.id} 
-                                                            evidence={evidence} 
-                                                            onClick={() => handleEvidenceClick(evidence)} 
-                                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
+                                    {/* Invalidated positives */}
+                                    {invalidatedPositives.map((evidence) => (
+                                        <EvidenceCard 
+                                            key={evidence.id} 
+                                            evidence={evidence} 
+                                            onClick={() => handleEvidenceClick(evidence)} 
+                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                            isWide={evidence.score >= 10}
+                                        />
+                                    ))}
                                 </div>
-                            )}
+
+                                {/* Right side: Negative/Neutral scores (2 columns) */}
+                                <div className="evidence-grid-section">
+                                    {/* Valid negatives */}
+                                    {zerosAndNegatives.map((evidence) => (
+                                        <EvidenceCard 
+                                            key={evidence.id} 
+                                            evidence={evidence} 
+                                            onClick={() => handleEvidenceClick(evidence)} 
+                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                            isWide={evidence.score <= -20}
+                                        />
+                                    ))}
+
+                                    {/* Invalidated negatives */}
+                                    {invalidatedZerosNegatives.map((evidence) => (
+                                        <EvidenceCard 
+                                            key={evidence.id} 
+                                            evidence={evidence} 
+                                            onClick={() => handleEvidenceClick(evidence)} 
+                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                            isWide={evidence.score <= -20}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
                         </>
                     )}
                 </main>

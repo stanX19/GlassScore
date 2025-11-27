@@ -7,9 +7,10 @@ interface EvidenceCardProps {
     evidence: EvaluationEvidence;
     onClick: () => void;
     badge?: string;
+    isWide?: boolean;
 }
 
-export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick, badge }) => {
+export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick, badge, isWide }) => {
     const getScoreClass = () => {
         if (evidence.score > 0) return 'positive';
         if (evidence.score < 0) return 'negative';
@@ -30,7 +31,7 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick, b
     };
 
     const scoreClass = getScoreClass();
-    const cardClass = `evidence-card ${scoreClass} ${!evidence.valid ? 'invalid' : ''}`;
+    const cardClass = `evidence-card ${scoreClass} ${!evidence.valid ? 'invalid' : ''} ${isWide ? 'wide' : ''}`;
 
     return (
         <div className={cardClass} onClick={onClick}>
