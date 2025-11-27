@@ -53,6 +53,19 @@ class ApiService {
             session_id: sessionId
         });
     }
+
+    async summariseEverything(sessionId: number): Promise<{
+        session_id: number;
+        average_score: number;
+        total_evidence: number;
+        summary: string;
+        model_used: string;
+    }> {
+        const response = await axios.post(`${API_BASE_URL}/evaluate/summarise_everything`, {
+            session_id: sessionId
+        });
+        return response.data;
+    }
 }
 
 export const apiService = new ApiService();

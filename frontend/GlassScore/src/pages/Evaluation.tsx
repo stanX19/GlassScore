@@ -5,6 +5,7 @@ import type { EvaluationEvidence, AppSession } from '../types';
 import { EvidenceCard } from '../components/EvidenceCard';
 import { EvidenceModal } from '../components/EvidenceModal';
 import { ScoreBar } from '../components/ScoreBar';
+import ReactMarkdown from 'react-markdown';
 import './Evaluation.css';
 
 export const Evaluation: React.FC = () => {
@@ -22,6 +23,15 @@ export const Evaluation: React.FC = () => {
     const [isApproved, setIsApproved] = useState<boolean | null>(null);
     const [isOverride, setIsOverride] = useState(false);
     const [showRiskModal, setShowRiskModal] = useState(false);
+    const [showSummaryModal, setShowSummaryModal] = useState(false);
+    const [summaryData, setSummaryData] = useState<{
+        average_score: number;
+        total_evidence: number;
+        summary: string;
+        model_used: string;
+    } | null>(null);
+    const [isSummarising, setIsSummarising] = useState(false);
+    const [summaryStale, setSummaryStale] = useState(false);
 
     const username = localStorage.getItem('glassscore_username') || 'Unknown User';
 
@@ -153,7 +163,12 @@ export const Evaluation: React.FC = () => {
             return curr.valid ? acc + curr.score : acc;
         }, 0);
         setTotalScore(score);
-    }, [evidences]);
+        
+        // Mark summary as stale when new evidence arrives
+        if (summaryData) {
+            setSummaryStale(true);
+        }
+    }, [evidences, summaryData]);
 
     const handleEvidenceClick = (evidence: EvaluationEvidence) => {
         setSelectedEvidence(evidence);
@@ -219,6 +234,38 @@ export const Evaluation: React.FC = () => {
 
     const handleCancelRiskApproval = () => {
         setShowRiskModal(false);
+    };
+
+    const handleSummarise = async () => {
+        if (!sessionId) return;
+        
+        // If summary modal is already open and data is stale, just refetch
+        if (showSummaryModal && summaryStale) {
+            await fetchSummary();
+            return;
+        }
+        
+        // Otherwise, open modal and fetch if needed
+        setShowSummaryModal(true);
+        if (!summaryData || summaryStale) {
+            await fetchSummary();
+        }
+    };
+
+    const fetchSummary = async () => {
+        if (!sessionId) return;
+        
+        setIsSummarising(true);
+        try {
+            const result = await apiService.summariseEverything(sessionId);
+            setSummaryData(result);
+            setSummaryStale(false);
+        } catch (error) {
+            console.error('Failed to generate summary:', error);
+            alert('Failed to generate summary. Please try again.');
+        } finally {
+            setIsSummarising(false);
+        }
     };
 
     // Separate and sort evidences by magnitude first, then by ID (newer first)
@@ -339,6 +386,26 @@ export const Evaluation: React.FC = () => {
                 )}
             </main>
 
+            {/* Floating Summarise Button */}
+            {evidences.length > 0 && (
+                <button 
+                    className="btn-summarise-floating" 
+                    onClick={handleSummarise}
+                    disabled={isSummarising}
+                >
+                    {isSummarising ? (
+                        <>
+                            <div className="spinner-tiny"></div>
+                            <span>Summarising...</span>
+                        </>
+                    ) : summaryStale && summaryData ? (
+                        '📝 Summarise (Updated)'
+                    ) : (
+                        '📝 Summarise'
+                    )}
+                </button>
+            )}
+
             {/* Bottom Score Bar */}
             <footer className="score-bar-footer">
                 <div className="score-bar-content-horizontal">
@@ -386,6 +453,56 @@ export const Evaluation: React.FC = () => {
                             <button className="btn-confirm" onClick={handleConfirmRiskApproval}>
                                 Confirm
                             </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Summary Modal */}
+            {showSummaryModal && (
+                <div className="summary-modal-overlay" onClick={() => setShowSummaryModal(false)}>
+                    <div className="summary-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="summary-modal-header">
+                            <h2>Evaluation Summary</h2>
+                            <button className="btn-close" onClick={() => setShowSummaryModal(false)}>
+                                ×
+                            </button>
+                        </div>
+                        <div className="summary-modal-content">
+                            {isSummarising ? (
+                                <div className="summary-loading">
+                                    <div className="spinner"></div>
+                                    <p>Generating summary...</p>
+                                </div>
+                            ) : summaryData ? (
+                                <>
+                                    {summaryStale && (
+                                        <div className="summary-stale-banner">
+                                            ⚠️ New evidence added. <button className="btn-refresh" onClick={fetchSummary}>Refresh Summary</button>
+                                        </div>
+                                    )}
+                                    <div className="summary-stats">
+                                        <div className="summary-stat">
+                                            <span className="stat-label">Average Score:</span>
+                                            <span className="stat-value">{summaryData.average_score}/100</span>
+                                        </div>
+                                        <div className="summary-stat">
+                                            <span className="stat-label">Total Evidence:</span>
+                                            <span className="stat-value">{summaryData.total_evidence}</span>
+                                        </div>
+                                    </div>
+                                    <div className="summary-text">
+                                        <ReactMarkdown>{summaryData.summary}</ReactMarkdown>
+                                    </div>
+                                    <div className="summary-footer">
+                                        <small>Generated by {summaryData.model_used}</small>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="summary-loading">
+                                    <p>No summary available</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

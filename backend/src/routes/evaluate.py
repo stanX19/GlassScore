@@ -80,3 +80,97 @@ async def update_evidence(request: UpdateEvidenceRequest):
         return session
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.post("/summarise_everything")
+async def summarise_everything(request: EvaluationRequest):
+    """
+    Generates a comprehensive summary of all evaluation evidence using LLM.
+    Returns a natural language summary of the loan evaluation results.
+    """
+    from src.llm.rotating_llm import rotating_llm
+    
+    session = await session_service.get_session(request.session_id)
+    if session is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+    
+    if not session.evidence_list:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="No evidence found. Please run evaluation first."
+        )
+    
+    # Prepare evidence data for summarization
+    evidence_data = []
+    total_score = 0
+    valid_count = 0
+    
+    for evidence in session.evidence_list:
+        if evidence.event_type == "evidence" and evidence.valid:
+            evidence_data.append({
+                "score": evidence.score,
+                "description": evidence.description,
+                "source": evidence.source,
+                "citation": evidence.citation
+            })
+            total_score += evidence.score
+            valid_count += 1
+
+    total_score = min(100, max(0, total_score))
+
+    if valid_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No valid evidence found to summarize."
+        )
+    
+    # Prepare user context
+    user_context = ""
+    if session.user_profile:
+        user_context = f"Applicant Profile: Name: {session.user_profile.name}, Age: {session.user_profile.age}, Gender: {session.user_profile.gender}\n"
+    
+    if session.loan_application:
+        user_context += f"Loan Application: Amount: ${session.loan_application.loan_amnt}, Income: ${session.loan_application.person_income}, Grade: {session.loan_application.loan_grade}\n"
+    
+    # Create prompt for LLM
+    prompt = f"""You are a loan evaluation analyst. Generate a comprehensive summary of the loan evaluation results.
+
+{user_context}
+
+Total Score: {total_score:.1f}/100
+Total Evidence Reviewed: {valid_count}
+
+Evidence Details:
+{json.dumps(evidence_data, indent=2)}
+
+Please provide:
+1. An overall assessment of the loan application (2-3 sentences)
+2. Key positive factors (bullet points)
+3. Key risk factors or concerns (bullet points)
+4. Final recommendation (Approve/Conditional Approve/Deny with reasoning)
+
+Keep the summary professional, concise, and actionable."""
+
+    try:
+        # Get summary from LLM
+        result = await rotating_llm.send_message(prompt, temperature=0.3)
+        
+        if result["status"] != "ok":
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to generate summary: {result['text']}"
+            )
+        
+        return {
+            "session_id": request.session_id,
+            "average_score": round(total_score, 1),
+            "total_evidence": valid_count,
+            "summary": result["text"],
+            "model_used": result["model"]
+        }
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating summary: {str(e)}"
+        )
