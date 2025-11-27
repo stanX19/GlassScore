@@ -1,7 +1,5 @@
 # GlassScore
 
-[Repo Link Placeholder]
-
 ## Solution Overview
 
 **Problem:** Traditional credit scoring systems are often "black boxes," relying solely on rigid financial history and failing to capture the full picture of an applicant's trustworthiness. They struggle with thin-file applicants and lack transparency.
