@@ -201,9 +201,16 @@ export const Evaluation: React.FC = () => {
 
     // Separate and sort evidences
     const validEvidences = evidences.filter(e => e.valid);
-    const positiveNeutral = validEvidences.filter(e => e.score >= 0).sort((a, b) => b.score - a.score);
-    const negative = validEvidences.filter(e => e.score < 0).sort((a, b) => a.score - b.score);
-    const invalidated = evidences.filter(e => !e.valid);
+    const invalidatedEvidences = evidences.filter(e => !e.valid);
+    
+    // Positives: score > 0
+    const positives = validEvidences.filter(e => e.score > 0).sort((a, b) => b.score - a.score);
+    // Zeros and negatives: score <= 0
+    const zerosAndNegatives = validEvidences.filter(e => e.score <= 0).sort((a, b) => b.score - a.score);
+    
+    // Split invalidated by original score
+    const invalidatedPositives = invalidatedEvidences.filter(e => e.score > 0).sort((a, b) => b.score - a.score);
+    const invalidatedZerosNegatives = invalidatedEvidences.filter(e => e.score <= 0).sort((a, b) => b.score - a.score);
 
     return (
         <div className="evaluation-container">
@@ -236,15 +243,10 @@ export const Evaluation: React.FC = () => {
                         </div>
                     ) : (
                         <>
-                            {/* Fixed 2+2 column grid: 2 cols for positive/neutral, 2 cols for negative */}
-                            <div 
-                                className="evidence-grid-combined"
-                                style={{
-                                    gridTemplateColumns: '1fr 1fr 1fr 1fr'
-                                }}
-                            >
-                                {/* Positive/Neutral cards in first 2 columns */}
-                                {positiveNeutral.map((evidence) => (
+                            {/* 2+2 column layout: left 2 for positives, right 2 for zeros/negatives */}
+                            <div className="evidence-grid-combined" style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr' }}>
+                                {/* Left 2 columns: Positives only */}
+                                {positives.map((evidence) => (
                                     <EvidenceCard 
                                         key={evidence.id} 
                                         evidence={evidence} 
@@ -253,8 +255,8 @@ export const Evaluation: React.FC = () => {
                                     />
                                 ))}
                                 
-                                {/* Negative cards in last 2 columns */}
-                                {negative.map((evidence) => (
+                                {/* Right 2 columns: Zeros and negatives */}
+                                {zerosAndNegatives.map((evidence) => (
                                     <EvidenceCard 
                                         key={evidence.id} 
                                         evidence={evidence} 
@@ -264,21 +266,49 @@ export const Evaluation: React.FC = () => {
                                 ))}
                             </div>
 
-                            {/* Invalidated Section at the bottom */}
-                            {invalidated.length > 0 && (
-                                <div className="invalidated-section">
-                                    <h2 className="section-title">
-                                        Invalidated Evidence ({invalidated.length})
-                                    </h2>
-                                    <div className="evidence-grid-invalidated">
-                                        {invalidated.map((evidence) => (
-                                            <EvidenceCard 
-                                                key={evidence.id} 
-                                                evidence={evidence} 
-                                                onClick={() => handleEvidenceClick(evidence)} 
-                                                badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                            />
-                                        ))}
+                            {/* Invalidated sections below their respective columns */}
+                            {(invalidatedPositives.length > 0 || invalidatedZerosNegatives.length > 0) && (
+                                <div className="invalidated-sections-container" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem' }}>
+                                    {/* Left: Rejected positives */}
+                                    <div className="invalidated-section">
+                                        {invalidatedPositives.length > 0 && (
+                                            <>
+                                                <h2 className="section-title">
+                                                    Rejected Positive Evidence ({invalidatedPositives.length})
+                                                </h2>
+                                                <div className="evidence-grid-invalidated" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                                    {invalidatedPositives.map((evidence) => (
+                                                        <EvidenceCard 
+                                                            key={evidence.id} 
+                                                            evidence={evidence} 
+                                                            onClick={() => handleEvidenceClick(evidence)} 
+                                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Right: Rejected zeros/negatives */}
+                                    <div className="invalidated-section">
+                                        {invalidatedZerosNegatives.length > 0 && (
+                                            <>
+                                                <h2 className="section-title">
+                                                    Rejected Negative Evidence ({invalidatedZerosNegatives.length})
+                                                </h2>
+                                                <div className="evidence-grid-invalidated" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                                                    {invalidatedZerosNegatives.map((evidence) => (
+                                                        <EvidenceCard 
+                                                            key={evidence.id} 
+                                                            evidence={evidence} 
+                                                            onClick={() => handleEvidenceClick(evidence)} 
+                                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}

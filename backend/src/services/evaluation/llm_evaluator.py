@@ -48,7 +48,7 @@ async def llm_evaluate_loan(
 	IMPORTANT: This text comes from web search results that have already been verified to match the applicant's identity.
 	However, be CAUTIOUS:
 	- Only cite information that is clearly relevant to credit risk
-	- Positive professional information (employment, achievements) should score +2
+	- Positive professional information (employment, achievements) should score +1
 	- Absence of negative information is NOT evidence (don't score it)
 	- Only assign negative scores (-5, -10) if you find actual concerning behavior (gambling, fraud, legal issues, financial instability)
 	- If the information is neutral or just biographical, return empty evidence list
@@ -63,14 +63,14 @@ async def llm_evaluate_loan(
 	"{content.text}"
 	
 	Analyze the text for behavioral signals and assign a score based on the following criteria:
-	- GOOD: 2 (Verified with evidence, logical behavior, stable employment)
+	- GOOD: 1 (Verified with evidence, logical behavior, stable employment)
 	- NORMAL: 0 (Neutral, standard behavior)
 	- MINOR ISSUE: -5 (Slight concerns, illogical description, suspicious writings)
 	- WARNING: -10 (Red flags, gambling, instability, high risk, major inconsistencies)
 	
 	Return a JSON object with the following field:
 	- "evidence": A list of evidence items. Each item should have:
-		- "score": The integer score assigned (2, 0, -5, or -10).
+		- "score": The integer score assigned (1, 0, -5, or -10).
 		- "citation": The exact excerpt from the text that supports this evaluation (quote it directly, not more than 10 words).
 		- "description": A brief explanation of why this citation is concerning or noteworthy. Not more than 15 words.
 	

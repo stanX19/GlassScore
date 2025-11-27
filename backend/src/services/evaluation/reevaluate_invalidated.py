@@ -56,7 +56,7 @@ async def reevaluate_invalidated_evidence(
     system_prompt = f"""You are a credit score evaluator for a bank. Your task is to analyze text from a loan applicant and evaluate their behavior.
 
 Analyze the text for behavioral signals and assign a score based on the following criteria:
-- GOOD: 2 (Verified with evidence, logical behavior, stable employment)
+- GOOD: 1 (Verified with evidence, logical behavior, stable employment)
 - NORMAL: 0 (Neutral, standard behavior)
 - MINOR ISSUE: -5 (Slight concerns, illogical description, suspicious writings)
 - WARNING: -10 (Red flags, gambling, instability, high risk, major inconsistencies)
@@ -84,7 +84,7 @@ Return a JSON object with:
 - "evidence": EITHER empty list or exactly one item.
 
 Each evidence item:
-- "score": one of 2, 0, -5, -10
+- "score": one of 1, 0, -5, -10
 - "citation": up to 10 words FROM TEXT, ONLY if related to feedback
 - "description": max 15 words, ONLY correcting the same topic as the original evidence
 
