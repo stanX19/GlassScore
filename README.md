@@ -16,6 +16,32 @@
 
 [GlassScore Presentation (PDF)](assets/GlassScore%20Presentation.pdf) | [View on Canva](https://www.canva.com/design/DAG55fYZJBw/RUf1vQOBvf8XYlziJRxWIA/edit?utm_content=DAG55fYZJBw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
+## Snapshots
+
+### Landing page
+![Login](assets/snapshots/Screenshot%202025-11-27%20221241.png)
+
+### Info page
+#### Fill applicant data
+![Applicant Info filling](assets/snapshots/Screenshot%202025-11-27%20222107.png)
+#### Upload docs with ease
+![Upload docs in bulk](assets/snapshots/Screenshot%202025-11-27%20222145.png)
+
+### Evaluation
+#### Streaming Evidence & credit score
+![Initial ML result](assets/snapshots/Screenshot%202025-11-27%20222551.png)
+![Negative Evidence streaming](assets/snapshots/Screenshot%202025-11-27%20222608.png)
+![Positive Evidence streaming](assets/snapshots/Screenshot%202025-11-27%20223037.png)
+
+#### Clear citation
+![Clear citation](assets/snapshots/Screenshot%202025-11-27%20223231.png)
+
+#### LLM Summary
+![LLM Summary](assets/snapshots/Screenshot%202025-11-27%20223403.png)
+
+#### Evidence Override Protocol
+![Evidence Override Protocol](assets/snapshots/Screenshot%202025-11-27%20230305.png)
+
 ## Getting Started
 
 ### Prerequisites
