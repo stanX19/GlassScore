@@ -10,22 +10,91 @@
 
 **Fix:** GlassScore is an advanced, multi-modal credit scoring platform that combines traditional Machine Learning with Large Language Models (LLMs) and real-time Web Search. It provides a transparent, explainable, and comprehensive credit score by analyzing structured data, personal statements, and external digital footprints.
 
+## Demo Video
+
+[Watch on YouTube](https://youtu.be/j1ak08jdrBQ)
+
+## Slides
+
+[GlassScore Presentation (PDF)](assets/GlassScore%20Presentation.pdf) | [View on Canva](https://www.canva.com/design/DAG55fYZJBw/RUf1vQOBvf8XYlziJRxWIA/edit?utm_content=DAG55fYZJBw&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+
+## Getting Started
+
+### Prerequisites
+*   Python 3.10+
+*   Node.js 18+
+*   API Keys for OpenAI/Google Gemini and Tavily.
+
+### Installation
+
+1.  Clone the repository:
+    ```bash
+    git clone https://github.com/stanx19/GlassScore.git
+    ```
+2.  Navigate to the root directory:
+    ```bash
+    cd GlassScore
+    ```
+
+### Backend Setup
+1.  Navigate to the backend directory:
+    ```bash
+    cd backend
+    ```
+2.  Create and activate a virtual environment:
+    ```bash
+    python -m venv venv
+	```
+    Windows
+    ```bash
+    .\venv\Scripts\activate
+	```
+    Linux/Mac
+    ```bash
+    source venv/bin/activate
+	```
+3.  Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+4.  Set up environment variables:
+    ```bash
+    cp .env.example .env
+    ```
+	Remember to fill in the API keys for OpenAI/Google Gemini and Tavily accordingly.
+
+
+5.  Run the server:
+    ```bash
+    uvicorn main:app --reload
+    ```
+
+### Frontend Setup
+1.  Navigate to the frontend directory:
+    ```bash
+    cd frontend/GlassScore
+    ```
+2.  Install dependencies:
+    ```bash
+    npm install
+    ```
+3.  Start the development server:
+    ```bash
+    npm run dev
+    ```
+
+## Tech Stack
+
+*   **Frontend:** React, TypeScript, Vite, Axios, Tailwind CSS.
+*   **Backend:** Python, FastAPI, Uvicorn.
+*   **AI & ML:** LangChain, OpenAI GPT-4 / Google Gemini, Scikit-learn, SHAP, Tavily Search API.
+*   **Database:** PostgreSQL (Production) / In-Memory (Dev).
+
 ## System Architecture
 
 GlassScore operates on a modern client-server architecture:
 
-```mermaid
-graph TD
-    Client[Frontend (React/Vite)] <-->|HTTP/Stream| API[Backend API (FastAPI)]
-    API --> Session[Session Manager]
-    Session --> ML[ML Evaluator (Scikit-learn)]
-    Session --> LLM[LLM Evaluator (LangChain)]
-    Session --> Web[Web Evaluator (Tavily Search)]
-    ML --> Evidence[Evidence Stream]
-    LLM --> Evidence
-    Web --> Evidence
-    Evidence --> Client
-```
+![System Architecture](docs/system_architecture.png)
 
 **Data Flow:**
 1.  **Input:** User submits loan application data (structured) and supporting documents/statements (unstructured).
@@ -54,66 +123,6 @@ GlassScore employs a robust **Random Forest Classifier** to predict loan default
     *   **Numerical:** Age, Income, Employment Length, Loan Amount, Interest Rate, Loan/Income Ratio, Credit History Length.
     *   **Categorical:** Home Ownership, Loan Intent, Loan Grade, Default History.
 *   **Explainability:** Integrated **SHAP (SHapley Additive exPlanations)** values to provide local interpretability, explaining exactly *why* a specific applicant received a certain risk score (e.g., "High Loan Amount" or "Low Income").
-
-## Source Code & Setup
-
-### Prerequisites
-*   Python 3.10+
-*   Node.js 18+
-*   API Keys for OpenAI/Google Gemini and Tavily.
-
-### Backend Setup
-1.  Navigate to the backend directory:
-    ```bash
-    cd backend
-    ```
-2.  Create and activate a virtual environment:
-    ```bash
-    python -m venv venv
-	```
-    Windows
-    ```bash
-    .\venv\Scripts\activate
-	```
-    Linux/Mac
-    ```bash
-    source venv/bin/activate
-	```
-3.  Install dependencies:
-    ```bash
-    pip install -r requirements.txt
-    ```
-4.  Run the server:
-    ```bash
-    uvicorn main:app --reload
-    ```
-
-### Frontend Setup
-1.  Navigate to the frontend directory:
-    ```bash
-    cd frontend/GlassScore
-    ```
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-3.  Start the development server:
-    ```bash
-    npm run dev
-    ```
-
-## Demo Video
-
-[Demo Video Placeholder]
-
-*(Max 5 minutes. Shows app running live: Input -> Processing -> Output)*
-
-## Tech Stack
-
-*   **Frontend:** React, TypeScript, Vite, Axios, Tailwind CSS.
-*   **Backend:** Python, FastAPI, Uvicorn.
-*   **AI & ML:** LangChain, OpenAI GPT-4 / Google Gemini, Scikit-learn, SHAP, Tavily Search API.
-*   **Database:** PostgreSQL (Production) / In-Memory (Dev).
 
 ## Innovation & Differentiation
 

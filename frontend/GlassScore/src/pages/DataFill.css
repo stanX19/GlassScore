@@ -1,7 +1,15 @@
 .datafill-container {
     min-height: 100vh;
-    background-color: #f7fbff;
     padding: 2rem;
+    position: relative;
+}
+
+.datafill-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, var(--color-blue), var(--color-green));
+    z-index: -2;
 }
 
 .datafill-card {
