@@ -1,0 +1,51 @@
+Loading datasets...
+Preprocessing data...
+Starting AutoML (RandomizedSearchCV)...
+Fitting 3 folds for each of 10 candidates, totalling 30 fits
+Best parameters found: {'classifier__n_estimators': 300, 'classifier__min_samples_split': 2, 'classifier__min_samples_leaf': 4, 'classifier__max_depth': 20, 'classifier__bootstrap': False}
+Best cross-validation AUC: 0.9349
+Evaluating best model on validation set...
+              precision    recall  f1-score   support
+
+           0       0.96      0.99      0.97     10087
+           1       0.92      0.72      0.81      1642
+
+    accuracy                           0.95     11729
+   macro avg       0.94      0.85      0.89     11729
+weighted avg       0.95      0.95      0.95     11729
+
+Validation ROC AUC Score: 0.9424
+Saving model...
+Model saved to D:\Users\user\PycharmProjects\GlassScore\backend\machine_learning\models/loan_model.joblib
+Generating predictions for test.csv...
+Predictions saved to D:\Users\user\PycharmProjects\GlassScore\backend\machine_learning\predictions.csv
+[CV] END classifier__bootstrap=False, classifier__max_depth=20, classifier__min_samples_leaf=2, classifier__min_samples_split=10, classifier__n_estimators=100; total time=   6.3s
+[CV] END classifier__bootstrap=False, classifier__max_depth=30, classifier__min_samples_leaf=2, classifier__min_samples_split=5, classifier__n_estimators=100; total time=   3.6s
+[CV] END classifier__bootstrap=False, classifier__max_depth=None, classifier__min_samples_leaf=1, classifier__min_samples_split=5, classifier__n_estimators=100; total time=   5.6s
+[CV] END classifier__bootstrap=False, classifier__max_depth=None, classifier__min_samples_leaf=1, classifier__min_samples_split=5, classifier__n_estimators=100; total time=   6.2s
+[CV] END classifier__bootstrap=False, classifier__max_depth=30, classifier__min_samples_leaf=2, classifier__min_samples_split=5, classifier__n_estimators=100; total time=   4.8s
+[CV] END classifier__bootstrap=False, classifier__max_depth=None, classifier__min_samples_leaf=1, classifier__min_samples_split=5, classifier__n_estimators=100; total time=   9.3s
+[CV] END classifier__bootstrap=False, classifier__max_depth=10, classifier__min_samples_leaf=1, classifier__min_samples_split=5, classifier__n_estimators=100; total time=   5.7s
+[CV] END classifier__bootstrap=False, classifier__max_depth=10, classifier__min_samples_leaf=1, classifier__min_samples_split=5, classifier__n_estimators=200; total time=   9.4s
+[CV] END classifier__bootstrap=True, classifier__max_depth=None, classifier__min_samples_leaf=2, classifier__min_samples_split=10, classifier__n_estimators=100; total time=   5.1s
+[CV] END classifier__bootstrap=True, classifier__max_depth=20, classifier__min_samples_leaf=4, classifier__min_samples_split=2, classifier__n_estimators=200; total time=   9.5s
+[CV] END classifier__bootstrap=False, classifier__max_depth=10, classifier__min_samples_leaf=1, classifier__min_samples_split=5, classifier__n_estimators=100; total time=   5.6s
+[CV] END classifier__bootstrap=False, classifier__max_depth=30, classifier__min_samples_leaf=2, classifier__min_samples_split=10, classifier__n_estimators=200; total time=   9.5s
+[CV] END classifier__bootstrap=False, classifier__max_depth=20, classifier__min_samples_leaf=2, classifier__min_samples_split=10, classifier__n_estimators=100; total time=   5.7s
+[CV] END classifier__bootstrap=False, classifier__max_depth=10, classifier__min_samples_leaf=1, classifier__min_samples_split=5, classifier__n_estimators=200; total time=   9.0s
+[CV] END classifier__bootstrap=False, classifier__max_depth=30, classifier__min_samples_leaf=4, classifier__min_samples_split=10, classifier__n_estimators=100; total time=   5.8s
+[CV] END classifier__bootstrap=False, classifier__max_depth=10, classifier__min_samples_leaf=1, classifier__min_samples_split=5, classifier__n_estimators=200; total time=   9.4s
+[CV] END classifier__bootstrap=True, classifier__max_depth=None, classifier__min_samples_leaf=2, classifier__min_samples_split=10, classifier__n_estimators=100; total time=   5.1s
+[CV] END classifier__bootstrap=True, classifier__max_depth=20, classifier__min_samples_leaf=4, classifier__min_samples_split=2, classifier__n_estimators=200; total time=   9.7s
+[CV] END classifier__bootstrap=True, classifier__max_depth=None, classifier__min_samples_leaf=2, classifier__min_samples_split=10, classifier__n_estimators=100; total time=   5.2s
+[CV] END classifier__bootstrap=False, classifier__max_depth=30, classifier__min_samples_leaf=2, classifier__min_samples_split=10, classifier__n_estimators=200; total time=   9.6s
+[CV] END classifier__bootstrap=False, classifier__max_depth=20, classifier__min_samples_leaf=2, classifier__min_samples_split=10, classifier__n_estimators=100; total time=   5.5s
+[CV] END classifier__bootstrap=False, classifier__max_depth=30, classifier__min_samples_leaf=2, classifier__min_samples_split=10, classifier__n_estimators=200; total time=   9.6s
+[CV] END classifier__bootstrap=False, classifier__max_depth=10, classifier__min_samples_leaf=1, classifier__min_samples_split=5, classifier__n_estimators=100; total time=   5.6s
+[CV] END classifier__bootstrap=True, classifier__max_depth=20, classifier__min_samples_leaf=4, classifier__min_samples_split=2, classifier__n_estimators=200; total time=   9.7s
+[CV] END classifier__bootstrap=False, classifier__max_depth=30, classifier__min_samples_leaf=4, classifier__min_samples_split=10, classifier__n_estimators=100; total time=   4.7s
+[CV] END classifier__bootstrap=False, classifier__max_depth=20, classifier__min_samples_leaf=4, classifier__min_samples_split=2, classifier__n_estimators=300; total time=  10.7s
+[CV] END classifier__bootstrap=False, classifier__max_depth=30, classifier__min_samples_leaf=4, classifier__min_samples_split=10, classifier__n_estimators=100; total time=   5.8s
+[CV] END classifier__bootstrap=False, classifier__max_depth=20, classifier__min_samples_leaf=4, classifier__min_samples_split=2, classifier__n_estimators=300; total time=  10.0s
+[CV] END classifier__bootstrap=False, classifier__max_depth=30, classifier__min_samples_leaf=2, classifier__min_samples_split=5, classifier__n_estimators=100; total time=   6.2s
+[CV] END classifier__bootstrap=False, classifier__max_depth=20, classifier__min_samples_leaf=4, classifier__min_samples_split=2, classifier__n_estimators=300; total time=  10.0s

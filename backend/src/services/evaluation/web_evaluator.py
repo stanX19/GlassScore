@@ -10,6 +10,7 @@ from langchain_core.tools import Tool
 
 from src.models.evaluate import EvaluationEvidence
 from src.models.session import UserProfile
+from src.models.ml_model import LoanApplication
 from src.services.session import session_service
 from src.llm.rotating_llm import rotating_llm
 from src.services.evaluation.llm_evaluator import llm_evaluate_loan
@@ -106,6 +107,15 @@ async def _generate_queries(session_id: int) -> list[dict]:
 
     # Combine all text content for context
     context_text = session.user_profile.model_dump_json(indent=2) + "\n\n"
+    if session.loan_application:
+        # Explicitly highlight key financial details for the LLM
+        app = session.loan_application
+        context_text += f"LOAN APPLICATION DETAILS:\n"
+        context_text += f"- Loan Amount: ${app.loan_amnt}\n"
+        context_text += f"- Annual Income: ${app.person_income}\n"
+        context_text += f"- Loan Intent: {app.loan_intent.value}\n"
+        context_text += f"- Employment Length: {app.person_emp_length} years\n\n"
+        
     context_text += "\n\n".join([
         f"Source: {c.source}\nContent: {c.text}" for c in session.text_content_dict.values()
     ])
@@ -152,7 +162,7 @@ async def _generate_queries(session_id: int) -> list[dict]:
         return []
 
 
-async def _execute_web_task(query_task: Task, index: int, session_id: int, user_profile: UserProfile = None) -> list[EvaluationEvidence]:
+async def _execute_web_task(query_task: Task, index: int, session_id: int, user_profile: UserProfile = None, loan_application: LoanApplication = None) -> list[EvaluationEvidence]:
     try:
         queries = await query_task
         if index < len(queries):
@@ -160,7 +170,7 @@ async def _execute_web_task(query_task: Task, index: int, session_id: int, user_
             query = item.get("query")
             objective = item.get("objective")
             if query:
-                return await web_evaluate(query, objective, session_id, user_profile)
+                return await web_evaluate(query, objective, session_id, user_profile, loan_application)
     except Exception as e:
         print(f"Error in web task {index}: {e}")
     return []
@@ -172,14 +182,15 @@ async def generate_web_tasks(session_id: int) -> list[Task]:
     # Get user profile for identity verification
     session = await session_service.get_session(session_id)
     user_profile = session.user_profile if session else None
+    loan_application = session.loan_application if session else None
     
     tasks = []
     for i in range(5):
-        tasks.append(asyncio.create_task(_execute_web_task(query_task, i, session_id, user_profile)))
+        tasks.append(asyncio.create_task(_execute_web_task(query_task, i, session_id, user_profile, loan_application)))
     return tasks
 
 
-async def web_evaluate(query: str, objective: str, session_id: int, user_profile: UserProfile = None) -> list[EvaluationEvidence]:
+async def web_evaluate(query: str, objective: str, session_id: int, user_profile: UserProfile = None, loan_application: LoanApplication = None) -> list[EvaluationEvidence]:
     print(f"Executing web search: {query}\n    Objective: {objective})")
     
     search_results = []

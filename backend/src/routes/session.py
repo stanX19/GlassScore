@@ -29,6 +29,7 @@ async def update_session(request: UpdateProfileRequest):
     if not session:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
     session.user_profile = request.user_profile
+    session.loan_application = request.loan_application
     session.text_content_dict.clear()
     session.evidence_list = []
     return session

@@ -279,7 +279,7 @@ export const Evaluation: React.FC = () => {
                                             evidence={evidence} 
                                             onClick={() => handleEvidenceClick(evidence)} 
                                             badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                            isWide={evidence.score <= -20}
+                                            isWide={evidence.score <= -10}
                                         />
                                     ))}
 
@@ -290,7 +290,7 @@ export const Evaluation: React.FC = () => {
                                             evidence={evidence} 
                                             onClick={() => handleEvidenceClick(evidence)} 
                                             badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                            isWide={evidence.score <= -20}
+                                            isWide={evidence.score <= -10}
                                         />
                                     ))}
                                 </div>

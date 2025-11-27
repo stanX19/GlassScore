@@ -2,6 +2,7 @@ from pydantic import BaseModel, Field
 from pydantic.fields import FieldInfo
 import asyncio
 from typing import Optional
+from src.models.ml_model import LoanApplication
 
 class TextContent(BaseModel):
     text: str
@@ -12,9 +13,6 @@ class UserProfile(BaseModel):
     name: str
     age: int
     gender: str
-    income: int
-    loan_amount: int
-    loan_term: int
 
 class EvaluationEvidence(BaseModel):
     id: int = 0
@@ -34,6 +32,7 @@ class AppSession(BaseModel):
     text_content_dict: dict[str, TextContent] = {}  # key -> TextContent for O(1) lookup
     evidence_list: list[EvaluationEvidence] = []
     user_profile: UserProfile | None = None
+    loan_application: LoanApplication | None = None
     
     # Queue for streaming evidence (not serialized)
     evidence_queue: Optional[asyncio.Queue] = Field(default=None, exclude=True)
@@ -47,6 +46,7 @@ class AttachContentRequest(BaseModel):
 class UpdateProfileRequest(BaseModel):
     session_id: int
     user_profile: UserProfile
+    loan_application: LoanApplication
 
 class UpdateEvidenceRequest(BaseModel):
     session_id: int

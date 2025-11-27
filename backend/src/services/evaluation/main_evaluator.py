@@ -1,4 +1,5 @@
 from src.models.evaluate import EvaluationRequest, EvaluationEvidence
+from src.models.ml_model import LoanApplication
 from src.services.session import session_service
 from src.services.evaluation.ml_evaluator import ml_evaluate_loan
 from src.services.evaluation.llm_evaluator import llm_evaluate_loan
@@ -29,7 +30,7 @@ async def start_evaluation(session_id: int) -> None:
     await session_service.push_evidence_to_stream(session_id, start_event)
 
     # 1. ML Evaluation
-    ml_task = asyncio.create_task(ml_evaluate_loan(session.user_profile))
+    ml_task = asyncio.create_task(ml_evaluate_loan(session.loan_application))
 
     # 2. Web Evaluation Tasks
     web_tasks = await generate_web_tasks(session_id)
@@ -88,11 +89,20 @@ if __name__ == "__main__":
             name="Joemer Ramos",
             age=30,
             gender="Male",
-            income=100000,
-            loan_amount=20000,
-            loan_term=12
         )
-        session = await session_service.create_session(user_profile)
+        loan_application = LoanApplication(
+            person_age=30,	
+			person_income=100000,
+			person_home_ownership="RENT",
+			person_emp_length=2,
+			loan_intent="HOMEIMPROVEMENT",
+			loan_grade="B",
+			loan_amnt=20000000,
+			loan_int_rate=0.05,
+			cb_person_default_on_file="N",
+			cb_person_cred_hist_length=2
+        )
+        session = await session_service.create_session(user_profile, loan_application)
         print(f"Created session {session.session_id}")
 
         # 2. Add text content

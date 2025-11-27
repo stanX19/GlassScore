@@ -1,3 +1,4 @@
+from src.models.ml_model import LoanApplication
 from src.models.session import UserProfile, AppSession
 from src.models.session import TextContent, EvaluationEvidence
 import asyncio
@@ -12,8 +13,7 @@ class SessionService:
     # Class variable to store all sessions in memory
     _sessions: dict[int, AppSession] = {}
     _next_session_id: int = 1
-
-    async def create_session(self, user_profile: UserProfile = None) -> AppSession:
+    async def create_session(self, user_profile: UserProfile = None, loan_application: LoanApplication = None) -> AppSession:
         """
         Creates a new session in memory.
         """
@@ -24,6 +24,7 @@ class SessionService:
         new_session = AppSession(
             session_id=session_id,
             user_profile=user_profile,
+            loan_application=loan_application,
             evidence_queue=asyncio.Queue()
         )
         self._sessions[session_id] = new_session

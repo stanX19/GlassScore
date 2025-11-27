@@ -24,3 +24,4 @@ aiosqlite
 sse-starlette
 pandas
 joblib
+scikit-learn
