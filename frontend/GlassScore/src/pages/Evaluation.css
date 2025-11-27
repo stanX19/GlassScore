@@ -1,6 +1,6 @@
 .evaluation-container {
     min-height: 100vh;
-    background-color: #f3f4f6;
+    background: #f0f7ff;
     margin: 0;
     display: flex;
     flex-direction: column;
@@ -63,31 +63,11 @@
     background-color: color-mix(in srgb, var(--color-blue), black 10%);
 }
 
-.evaluation-layout {
-    display: flex;
-    flex: 1;
-}
-
-.evaluation-main-with-sidebar {
+.evaluation-main {
     flex: 1;
     overflow-y: auto;
     padding: 2rem 1rem;
-    margin-right: 80px; /* Space for fixed sidebar */
-}
-
-.score-sidebar {
-    width: 80px;
-    background-color: white;
-    border-left: 1px solid #e5e7eb;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 2rem 0;
-    position: fixed;
-    right: 0;
-    top: 70px;
-    height: calc(100vh - 70px);
-    z-index: 10;
+    padding-bottom: 140px; /* Space for fixed footer */
 }
 
 .evaluation-loading {
@@ -157,7 +137,11 @@
 
 /* Responsive breakpoints for mobile */
 @media (max-width: 768px) {
-    .evidence-grid-combined {
+    .evidence-grid-wrapper {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .evidence-grid-section {
         grid-template-columns: 1fr !important;
     }
     
@@ -165,70 +149,71 @@
         grid-template-columns: 1fr !important;
     }
     
-    .score-sidebar {
-        display: none;
+    .score-bar-content-horizontal {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .evaluation-main {
+        padding-bottom: 200px; /* More space for taller footer on mobile */
     }
 }
 
-.sidebar-loading {
+/* Horizontal Score Bar Footer */
+.score-bar-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem 2rem;
+    z-index: 50;
+}
+
+.score-bar-content-horizontal {
+    max-width: 100%;
     display: flex;
-    flex-direction: column;
     align-items: center;
-    margin-top: 1rem;
-    cursor: default;
-    position: relative;
-    height: 40px; /* Reserve space for animation */
+    gap: 1.5rem;
+}
+
+.checkmark-horizontal,
+.loading-indicator {
+    margin-right: 1rem;
+}
+
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .spinner-small {
     width: 24px;
     height: 24px;
-    border: 4px solid color-mix(in srgb, var(--color-green), white 80%); /* Light green track */
-    border-top-color: var(--color-green); /* Green spinner */
+    border: 3px solid #e5e7eb;
+    border-top-color: var(--color-blue);
     border-radius: 50%;
     animation: spin 1s linear infinite;
-    transition: all 0.3s ease;
 }
 
-.loading-text {
-    font-size: 0.75rem;
-    color: var(--color-green);
-    font-weight: 600;
-    opacity: 0;
-    transform: translateY(-10px);
-    transition: all 0.3s ease;
-    position: absolute;
-    top: 30px;
-    white-space: nowrap;
-    pointer-events: none;
+.loading-text-horizontal {
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
 }
 
-.sidebar-loading:hover .spinner-small {
-    transform: scale(1.1);
-}
-
-.sidebar-loading:hover .loading-text {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.sidebar-complete {
-    margin-top: 1rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.checkmark {
-    width: 28px;
-    height: 28px;
+.checkmark-horizontal {
+    width: 32px;
+    height: 32px;
     background-color: var(--color-green);
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: bold;
     animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
@@ -236,4 +221,159 @@
 @keyframes popIn {
     0% { transform: scale(0); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
+}
+
+/* Verdict Section */
+.verdict-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.verdict-text {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.btn-accept,
+.btn-approve-anyway,
+.btn-approved {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-accept {
+    background-color: var(--color-green);
+    color: white;
+}
+
+.btn-accept:hover {
+    background-color: color-mix(in srgb, var(--color-green), black 10%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-approve-anyway {
+    background-color: var(--color-orange);
+    color: white;
+}
+
+.btn-approve-anyway:hover {
+    background-color: color-mix(in srgb, var(--color-orange), black 10%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.btn-approved {
+    background-color: var(--color-green);
+    color: white;
+    cursor: default;
+    opacity: 0.9;
+}
+
+.approval-confirmed {
+    width: 40px;
+    height: 40px;
+    background-color: var(--color-green);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Risk Modal */
+.risk-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.risk-modal {
+    background-color: white;
+    border-radius: 0.75rem;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.risk-modal h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 1rem 0;
+    text-align: center;
+}
+
+.risk-warning {
+    font-size: 1.125rem;
+    font-style: italic;
+    color: var(--color-red);
+    font-weight: 600;
+    text-align: center;
+    margin: 0 0 2rem 0;
+}
+
+.risk-modal-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.btn-cancel,
+.btn-confirm {
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-cancel {
+    background-color: #e5e7eb;
+    color: #374151;
+}
+
+.btn-cancel:hover {
+    background-color: #d1d5db;
+}
+
+.btn-confirm {
+    background-color: var(--color-orange);
+    color: white;
+}
+
+.btn-confirm:hover {
+    background-color: color-mix(in srgb, var(--color-orange), black 10%);
 }

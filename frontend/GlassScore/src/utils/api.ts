@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { BASE_URL } from './constants';
-import type { UserProfile, TextContent, AppSession } from '../types';
+import type { UserProfile, LoanApplication, TextContent, AppSession } from '../types';
 
 const API_BASE_URL = BASE_URL;
 
@@ -10,10 +10,11 @@ class ApiService {
         return response.data;
     }
 
-    async updateProfile(sessionId: number, userProfile: UserProfile): Promise<AppSession> {
+    async updateProfile(sessionId: number, userProfile: UserProfile, loanApplication: LoanApplication): Promise<AppSession> {
         const response = await axios.post(`${API_BASE_URL}/session/update`, {
             session_id: sessionId,
-            user_profile: userProfile
+            user_profile: userProfile,
+            loan_application: loanApplication
         });
         return response.data;
     }

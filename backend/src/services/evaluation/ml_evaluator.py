@@ -15,7 +15,9 @@ async def ml_evaluate_loan(loan_application: LoanApplication) -> EvaluationEvide
 
     # Run inference in a separate thread to avoid blocking
     try:
-        prediction, probability = await asyncio.to_thread(predict_loan_status, loan_application)
+        prediction, probability, explanation = await asyncio.to_thread(
+            predict_loan_status, loan_application, include_explanation=True
+        )
         
         # Probability is prob of Default (1).
         # We want a credit score where higher is better.
@@ -26,10 +28,13 @@ async def ml_evaluate_loan(loan_application: LoanApplication) -> EvaluationEvide
         is_default_pred = prediction[0] > 0.5
         status_str = "High Risk" if is_default_pred else "Low Risk"
         
+        # Include explanation in description
+        description = f"{status_str}"
+        
         return EvaluationEvidence(
             score=score,
-            description=status_str,
-            citation="",
+            description=description,
+            citation=explanation,
             source="Machine Learning Model"
         )
     except Exception as e:

@@ -38,7 +38,12 @@ export const EvidenceCard: React.FC<EvidenceCardProps> = ({ evidence, onClick, b
             <div className={`evidence-score ${scoreClass}`}>
                 {evidence.score > 0 ? '+' : ''}{evidence.score}
             </div>
-            <p className="evidence-description">{evidence.description}</p>
+            <p className="evidence-description">
+                {evidence.description}
+            </p>
+			{/* {evidence.citation && (
+				<span className="evidence-citation-inline"> "{evidence.citation}"</span>
+			)} */}
             <p className="evidence-source">
                 Source: {isUrl(evidence.source) ? (
                     <a 

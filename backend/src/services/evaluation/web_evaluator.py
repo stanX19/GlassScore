@@ -129,6 +129,8 @@ async def _generate_queries(session_id: int) -> list[dict]:
     2. Checking for negative news, lawsuits, or financial scandals.
     3. Identifying social media presence that might contradict their claims.
     4. Verifying their requested loan amount matches their purpose.
+    
+    RULE: You are using tavily, keep the search simple without OR and AND
 
     Applicant Information:
     {context_text}
@@ -192,7 +194,7 @@ async def generate_web_tasks(session_id: int) -> list[Task]:
 
 async def web_evaluate(query: str, objective: str, session_id: int, user_profile: UserProfile = None, loan_application: LoanApplication = None) -> list[EvaluationEvidence]:
     print(f"Executing web search: {query}\n    Objective: {objective})")
-    
+
     search_results = []
 
     if not os.environ.get("TAVILY_API_KEY"):

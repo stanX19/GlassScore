@@ -74,7 +74,8 @@ STRICT RULES:
 2. You must NOT introduce new concerns, risks, job stability claims, gambling mentions, or any new insights that the user did not bring up in their feedback.
 3. Your ONLY task is to decide:
    - Should the evidence be removed? (then return an empty list)
-   - Or is there a corrected version of THIS SAME evidence based ONLY on the user's reasoning?
+   - Or is there a corrected version of THIS SAME evidence based on the user's reasoning?
+        *example*: He has no criminal records +2 --> No he has --> Evidence with opposite score -10
 
 4. You may NOT generate evidence about any topic EXCEPT the one covered by the invalidated evidence.
 
@@ -88,8 +89,8 @@ Each evidence item:
 - "citation": up to 10 words FROM TEXT, ONLY if related to feedback
 - "description": max 15 words, ONLY correcting the same topic as the original evidence
 
-If the feedback says the evidence is irrelevant, insignificant, outdated, incorrect, or should be removed, return an empty list.
-If the feedback clarifies the same topic, provide a corrected single evidence item.
+If the feedback simply says the evidence is irrelevant, insignificant, outdated, or should be removed, return an empty list.
+If the feedback points to the direct negative of the same topic, provide a corrected single evidence item.
 """
 
     try:
@@ -122,13 +123,16 @@ If the feedback clarifies the same topic, provide a corrected single evidence it
             # LLM accepted invalidation - return new evidence if provided, otherwise empty list
             if evidence_list:
                 item = evidence_list[0]  # Take only the first evidence
-                return [EvaluationEvidence(
+                new_evidence = EvaluationEvidence(
                     score=item.get("score", 0),
                     description=item.get("description", "No description provided."),
                     citation=item.get("citation", ""),
                     source=original_evidence.source,
                     text_content_key=original_evidence.text_content_key
-                )]
+                )
+                if new_evidence.score == 0:
+                    return []
+                return [new_evidence]
             else:
                 # No new evidence - invalidation accepted, evidence removed
                 return []

@@ -19,6 +19,9 @@ export const Evaluation: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [session, setSession] = useState<AppSession | null>(null);
     const streamInitiatedRef = useRef(false);
+    const [isApproved, setIsApproved] = useState<boolean | null>(null);
+    const [isOverride, setIsOverride] = useState(false);
+    const [showRiskModal, setShowRiskModal] = useState(false);
 
     const username = localStorage.getItem('glassscore_username') || 'Unknown User';
 
@@ -199,18 +202,56 @@ export const Evaluation: React.FC = () => {
         }
     };
 
-    // Separate and sort evidences
+    const handleAccept = () => {
+        setIsApproved(true);
+        setIsOverride(false);
+    };
+
+    const handleApproveAnyway = () => {
+        setShowRiskModal(true);
+    };
+
+    const handleConfirmRiskApproval = () => {
+        setIsApproved(true);
+        setIsOverride(true);
+        setShowRiskModal(false);
+    };
+
+    const handleCancelRiskApproval = () => {
+        setShowRiskModal(false);
+    };
+
+    // Separate and sort evidences by magnitude first, then by ID (newer first)
+    const sortByMagnitudeAndTime = (a: EvaluationEvidence, b: EvaluationEvidence) => {
+        const magA = Math.abs(a.score);
+        const magB = Math.abs(b.score);
+        if (magB !== magA) return magB - magA; // Higher magnitude first
+        return b.id - a.id; // Newer (higher ID) first as tiebreaker
+    };
+    
     const validEvidences = evidences.filter(e => e.valid);
     const invalidatedEvidences = evidences.filter(e => !e.valid);
     
     // Positives: score > 0
-    const positives = validEvidences.filter(e => e.score > 0).sort((a, b) => b.score - a.score);
+    const positives = validEvidences.filter(e => e.score > 0).sort(sortByMagnitudeAndTime);
     // Zeros and negatives: score <= 0
-    const zerosAndNegatives = validEvidences.filter(e => e.score <= 0).sort((a, b) => b.score - a.score);
+    const zerosAndNegatives = validEvidences.filter(e => e.score <= 0).sort(sortByMagnitudeAndTime);
     
     // Split invalidated by original score
-    const invalidatedPositives = invalidatedEvidences.filter(e => e.score > 0).sort((a, b) => b.score - a.score);
-    const invalidatedZerosNegatives = invalidatedEvidences.filter(e => e.score <= 0).sort((a, b) => b.score - a.score);
+    const invalidatedPositives = invalidatedEvidences.filter(e => e.score > 0).sort(sortByMagnitudeAndTime);
+    const invalidatedZerosNegatives = invalidatedEvidences.filter(e => e.score <= 0).sort(sortByMagnitudeAndTime);
+    
+    // Helper to determine if an evidence should be wide (only first eligible one in each category)
+    const shouldBeWide = (evidence: EvaluationEvidence, list: EvaluationEvidence[]) => {
+        const threshold = evidence.score > 0 ? 10 : -10;
+        const isEligible = evidence.score > 0 ? evidence.score >= threshold : evidence.score <= threshold;
+        if (!isEligible) return false;
+        // Check if this is the first eligible one in the list
+        const firstEligibleIndex = list.findIndex(e => 
+            e.score > 0 ? e.score >= 10 : e.score <= -10
+        );
+        return list[firstEligibleIndex]?.id === evidence.id;
+    };
 
     return (
         <div className="evaluation-container">
@@ -229,91 +270,126 @@ export const Evaluation: React.FC = () => {
                 </div>
             </header>
 
-            {/* Main Layout with Score Bar on Right */}
-            <div className="evaluation-layout">
-                <main className="evaluation-main-with-sidebar">
-                    {isLoading && evidences.length === 0 ? (
-                        <div className="evaluation-loading">
-                            <div className="spinner"></div>
-                            <p>Waiting for evidence stream...</p>
-                        </div>
-                    ) : evidences.length === 0 ? (
-                        <div className="evaluation-loading">
-                            <p>No evidence found. The evaluation may have completed already.</p>
-                        </div>
-                    ) : (
-                        <>
-                            {/* Two separate 2-column grids side by side */}
-                            <div className="evidence-grid-wrapper">
-                                {/* Left side: Positive scores (2 columns) */}
-                                <div className="evidence-grid-section">
-                                    {/* Valid positives */}
-                                    {positives.map((evidence) => (
-                                        <EvidenceCard 
-                                            key={evidence.id} 
-                                            evidence={evidence} 
-                                            onClick={() => handleEvidenceClick(evidence)} 
-                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                            isWide={evidence.score >= 10}
-                                        />
-                                    ))}
-                                    
-                                    {/* Invalidated positives */}
-                                    {invalidatedPositives.map((evidence) => (
-                                        <EvidenceCard 
-                                            key={evidence.id} 
-                                            evidence={evidence} 
-                                            onClick={() => handleEvidenceClick(evidence)} 
-                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                            isWide={evidence.score >= 10}
-                                        />
-                                    ))}
-                                </div>
-
-                                {/* Right side: Negative/Neutral scores (2 columns) */}
-                                <div className="evidence-grid-section">
-                                    {/* Valid negatives */}
-                                    {zerosAndNegatives.map((evidence) => (
-                                        <EvidenceCard 
-                                            key={evidence.id} 
-                                            evidence={evidence} 
-                                            onClick={() => handleEvidenceClick(evidence)} 
-                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                            isWide={evidence.score <= -10}
-                                        />
-                                    ))}
-
-                                    {/* Invalidated negatives */}
-                                    {invalidatedZerosNegatives.map((evidence) => (
-                                        <EvidenceCard 
-                                            key={evidence.id} 
-                                            evidence={evidence} 
-                                            onClick={() => handleEvidenceClick(evidence)} 
-                                            badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
-                                            isWide={evidence.score <= -10}
-                                        />
-                                    ))}
-                                </div>
+            {/* Main Content Area */}
+            <main className="evaluation-main">
+                {isLoading && evidences.length === 0 ? (
+                    <div className="evaluation-loading">
+                        <div className="spinner"></div>
+                        <p>Waiting for evidence stream...</p>
+                    </div>
+                ) : evidences.length === 0 ? (
+                    <div className="evaluation-loading">
+                        <p>No evidence found. The evaluation may have completed already.</p>
+                    </div>
+                ) : (
+                    <>
+                        {/* Two separate 2-column grids side by side */}
+                        <div className="evidence-grid-wrapper">
+                            {/* Left side: Positive scores (2 columns) */}
+                            <div className="evidence-grid-section">
+                                {/* Valid positives */}
+                                {positives.map((evidence) => (
+                                    <EvidenceCard 
+                                        key={evidence.id} 
+                                        evidence={evidence} 
+                                        onClick={() => handleEvidenceClick(evidence)} 
+                                        badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                        isWide={shouldBeWide(evidence, positives)}
+                                    />
+                                ))}
+                                
+                                {/* Invalidated positives */}
+                                {invalidatedPositives.map((evidence) => (
+                                    <EvidenceCard 
+                                        key={evidence.id} 
+                                        evidence={evidence} 
+                                        onClick={() => handleEvidenceClick(evidence)} 
+                                        badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                        isWide={shouldBeWide(evidence, invalidatedPositives)}
+                                    />
+                                ))}
                             </div>
-                        </>
-                    )}
-                </main>
 
-                {/* Score Bar Sidebar */}
-                <aside className="score-sidebar">
+                            {/* Right side: Negative/Neutral scores (2 columns) */}
+                            <div className="evidence-grid-section">
+                                {/* Valid negatives */}
+                                {zerosAndNegatives.map((evidence) => (
+                                    <EvidenceCard 
+                                        key={evidence.id} 
+                                        evidence={evidence} 
+                                        onClick={() => handleEvidenceClick(evidence)} 
+                                        badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                        isWide={shouldBeWide(evidence, zerosAndNegatives)}
+                                    />
+                                ))}
+
+                                {/* Invalidated negatives */}
+                                {invalidatedZerosNegatives.map((evidence) => (
+                                    <EvidenceCard 
+                                        key={evidence.id} 
+                                        evidence={evidence} 
+                                        onClick={() => handleEvidenceClick(evidence)} 
+                                        badge={evidence.source.startsWith('Re-evaluation of Evidence #') ? 'Re-evaluated' : undefined}
+                                        isWide={shouldBeWide(evidence, invalidatedZerosNegatives)}
+                                    />
+                                ))}
+                            </div>
+                        </div>
+                    </>
+                )}
+            </main>
+
+            {/* Bottom Score Bar */}
+            <footer className="score-bar-footer">
+                <div className="score-bar-content-horizontal">
                     <ScoreBar score={totalScore} />
                     {isLoading ? (
-                        <div className="sidebar-loading">
+                        <div className="loading-indicator">
                             <div className="spinner-small"></div>
-                            <span className="loading-text">Evaluation ongoing</span>
                         </div>
                     ) : (
-                        <div className="sidebar-complete">
-                            <div className="checkmark">✓</div>
-                        </div>
+                        <div className="checkmark-horizontal">✓</div>
                     )}
-                </aside>
-            </div>
+                    <div className="verdict-text">
+                        {isApproved && isOverride ? (
+                            <>Approved (Overridden by {username})</>
+                        ) : (
+                            <>Final verdict: {totalScore >= 50 ? 'Approve Loan' : 'Reject Loan'}</>
+                        )}
+                    </div>
+                    {isApproved !== null ? (
+                        <button className="btn-approved" disabled>
+                            Loan Approved ✓
+                        </button>
+                    ) : totalScore >= 50 ? (
+                        <button className="btn-accept" onClick={handleAccept}>
+                            Accept
+                        </button>
+                    ) : (
+                        <button className="btn-approve-anyway" onClick={handleApproveAnyway}>
+                            Approve Anyway
+                        </button>
+                    )}
+                </div>
+            </footer>
+
+            {/* Risk Approval Modal */}
+            {showRiskModal && (
+                <div className="risk-modal-overlay" onClick={handleCancelRiskApproval}>
+                    <div className="risk-modal" onClick={(e) => e.stopPropagation()}>
+                        <h2>Are you sure?</h2>
+                        <p className="risk-warning">High risk loan</p>
+                        <div className="risk-modal-buttons">
+                            <button className="btn-cancel" onClick={handleCancelRiskApproval}>
+                                Cancel
+                            </button>
+                            <button className="btn-confirm" onClick={handleConfirmRiskApproval}>
+                                Confirm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Modal */}
             <EvidenceModal 
